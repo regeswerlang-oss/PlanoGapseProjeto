@@ -1,0 +1,21 @@
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+conf/
+*.token
+*token_cache*
+gmail_config.json
+
+# Dados de cliente
+*.xlsx
+*.xls
+*.zip
+dados_*.json
+
+# Sistema / lixo
+.DS_Store
+__pycache__/
+*.pyc
+.vercel/
+node_modules/

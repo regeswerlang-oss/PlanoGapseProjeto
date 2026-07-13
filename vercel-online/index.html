@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Serviço × Comercial — DIGITRO · online</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  color-scheme:light;
+  --navy:#0C2340; --roxo:#6F5BFF; --lilas:#E8E5FF; --cinza:#F4F4F8;
+  --gray:#6A6A7B; --gray-light:#9A9AAC; --ink:#2A2A35;
+  --approve:#1E9E6A; --phase2:#E8A33D; --workaround:#0099B5; --refuse:#D64550; --pending:#B9B9C8;
+  --grad:linear-gradient(135deg,#6F5BFF 0%,#0C2340 100%);
+  --font:-apple-system,"Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font);background:#F4F6F8;color:var(--navy);line-height:1.5;min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--roxo)}
+.topbar{position:sticky;top:0;z-index:100;background:var(--navy);color:#fff;border-bottom:3px solid;border-image:var(--grad) 1;box-shadow:0 4px 18px rgba(12,35,64,.18)}
+.topbar-inner{max-width:1600px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.tb-brand{display:flex;align-items:center;gap:12px}
+.tb-logo{width:36px;height:36px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff}
+.tb-titles .t1{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--roxo);font-weight:700}
+.tb-titles .t2{font-size:15px;font-weight:600;margin-top:1px}
+.tb-titles .t3{font-size:11px;color:var(--gray-light);margin-top:1px}
+.tb-kpis{display:flex;gap:8px;flex:1;justify-content:flex-end;flex-wrap:wrap}
+.kpi-pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:7px 13px;display:flex;flex-direction:column;gap:1px;min-width:100px}
+.kpi-pill .lbl{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray-light);font-weight:700}
+.kpi-pill .val{font-size:18px;font-weight:800;color:#fff;line-height:1}
+.kpi-pill .val .u{font-size:9px;color:var(--gray-light);font-weight:500;margin-left:2px}
+.kpi-pill .pct{font-size:9.5px;color:var(--gray-light);margin-top:1px}
+.kpi-pill.aprovado .val{color:#46D69E} .kpi-pill.naoaprovado .val{color:#FFC368}
+.kpi-pill.saindo .val{color:#FF7A88} .kpi-pill.estimado .val{color:#E6E6F0} .kpi-pill.decid .val{color:#5BD3FF}
+.status{font-size:11px;padding:3px 9px;border-radius:8px;font-weight:700}
+.status.ok{background:rgba(70,214,158,.18);color:#46D69E} .status.load{background:rgba(255,195,104,.18);color:#FFC368} .status.err{background:rgba(255,122,136,.18);color:#FF7A88}
+.tabs{max-width:1600px;margin:16px auto 0;padding:0 24px;display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:10px 16px;border:1px solid #DCE3E8;border-bottom:none;border-radius:10px 10px 0 0;background:#fff;font-size:13px;font-weight:600;color:var(--gray)}
+.tab.active{color:var(--navy);border-color:var(--roxo);box-shadow:0 -2px 0 var(--roxo) inset}
+.tab .b{margin-left:7px;background:var(--lilas);color:#6F2BC9;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800}
+.container{max-width:1600px;margin:0 auto;padding:18px 24px 120px}
+.panel{display:none} .panel.active{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:.3}to{opacity:1}}
+.note{font-size:12px;color:var(--gray);margin:2px 0 14px}
+.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:980px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(12,35,64,.06);padding:18px 20px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.card h3 .num{width:22px;height:22px;border-radius:6px;background:var(--grad);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.card .sub{font-size:11.5px;color:var(--gray);margin-bottom:12px}
+.chart-box{position:relative;height:260px}
+.chart-box.tall{height:320px}
+.hero{background:var(--grad);color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+.hero .big{font-size:30px;font-weight:800;line-height:1}
+.hero .big .u{font-size:13px;opacity:.8}
+.hero .lbl{font-size:11px;letter-spacing:.6px;text-transform:uppercase;opacity:.85;font-weight:700;margin-top:2px}
+.hero .desc{font-size:12.5px;opacity:.92;max-width:560px;margin-top:8px}
+.hero-stats{display:flex;gap:20px;text-align:right}
+.funnel{display:flex;flex-direction:column;gap:8px}
+.fbar{display:grid;grid-template-columns:170px 1fr 92px;align-items:center;gap:10px}
+.fbar .fn{font-size:12px;font-weight:700;color:var(--navy)}
+.fbar .ft{height:24px;border-radius:6px;background:#EDF1F4;overflow:hidden}
+.fbar .ft span{display:block;height:100%;border-radius:6px}
+.fbar .fv{font-size:12.5px;font-weight:800;text-align:right}
+.f-estimado span{background:#9AA3B5} .f-aprovado span{background:var(--approve)}
+.f-naoaprovado span{background:var(--phase2)} .f-saindo span{background:var(--refuse)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 11px;font-size:11px;letter-spacing:.4px;text-transform:uppercase}
+td{padding:9px 11px;border-bottom:1px solid #EDF1F4;vertical-align:top}
+tr:nth-child(even) td{background:#F8F9FC}
+tr.alto td{background:#FCEDEF}
+.code{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:11px;background:var(--navy);color:#fff;padding:2px 6px;border-radius:5px;font-weight:600;display:inline-block;margin:1px 2px 1px 0}
+.grau{font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;white-space:nowrap}
+.grau.Alto{background:#FAD4D8;color:#B0212E} .grau.Médio{background:#FCEBCF;color:#8A5A00} .grau.MédioAlto{background:#F3DCC9;color:#9A3A12}
+.nlmtag{font-size:10px;background:#E2F5EC;color:var(--approve);padding:2px 8px;border-radius:7px;font-weight:700;cursor:pointer;border:1px solid #BFE8D2}
+.nlmrow td{background:#F2FBF6 !important;border-left:3px solid var(--approve);font-size:12px;color:#1c5e42}
+.nlm-card{background:#fff;border-radius:12px;border-left:4px solid var(--approve);box-shadow:0 1px 4px rgba(12,35,64,.06);padding:15px 18px;margin-bottom:12px}
+.nlm-card h4{font-size:13.5px;color:var(--navy);margin-bottom:4px}
+.nlm-card .ids{margin-bottom:8px}
+.nlm-card p{font-size:12.5px;color:var(--ink)}
+.nlm-src{font-size:11px;color:var(--gray);margin:0 0 14px;padding:9px 13px;background:#E2F5EC;border-radius:9px}
+.dec-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.dec-controls select,.dec-controls input{padding:9px 12px;border:1px solid #DCE3E8;border-radius:9px;font-family:var(--font);font-size:12.5px;background:#fff;color:var(--navy)}
+.dec-controls input{flex:1;min-width:200px}
+.btn-ghost{padding:9px 13px;background:#fff;border:1px solid #DCE3E8;border-radius:9px;font-size:12px;font-weight:600;color:var(--gray)}
+.btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+.task{background:#fff;border:1px solid #EDF1F4;border-radius:10px;padding:13px 15px;border-left:4px solid #DCE3E8;margin-bottom:9px;transition:all .15s}
+.task.d-aprovar{border-left-color:var(--approve);background:linear-gradient(90deg,#F0FAF5,#fff 55%)}
+.task.d-segunda_fase{border-left-color:var(--phase2);background:linear-gradient(90deg,#FFF7EC,#fff 55%)}
+.task.d-contorno{border-left-color:var(--workaround);background:linear-gradient(90deg,#E8F7FB,#fff 55%)}
+.task.d-recusar{border-left-color:var(--refuse);background:linear-gradient(90deg,#FCEDEF,#fff 55%);opacity:.95}
+.task-top{display:grid;grid-template-columns:1fr auto;gap:13px;align-items:start}
+.task-id-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.task-title{font-size:13.5px;font-weight:700;color:var(--navy)}
+.task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag-mini{font-size:10px;background:#EDF1F4;color:var(--gray);padding:2px 7px;border-radius:5px;font-weight:600}
+.tag-mini.modulo{background:#F0E5FF;color:#6F2BC9}
+.tag-mini.alto{background:#FAD4D8;color:#B0212E}
+.tag-mini.medio{background:#FCEBCF;color:#8A5A00}
+.tag-mini.etapa{background:#E6EDF7;color:var(--navy)}
+.task-hours{text-align:right;min-width:60px}
+.task-hours .h{font-size:17px;font-weight:800;color:var(--navy);line-height:1}
+.task-hours .h .u{font-size:10px;color:var(--gray);font-weight:500}
+.task-hours .l{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-top:2px}
+.task-actions{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;align-items:center}
+.btn-decide{padding:7px 12px;border:1.5px solid;border-radius:8px;font-size:12px;font-weight:700;background:#fff;transition:all .12s}
+.btn-aprovar{border-color:var(--approve);color:var(--approve)} .btn-aprovar.active{background:var(--approve);color:#fff}
+.btn-segunda_fase{border-color:var(--phase2);color:var(--phase2)} .btn-segunda_fase.active{background:var(--phase2);color:#fff}
+.btn-contorno{border-color:var(--workaround);color:var(--workaround)} .btn-contorno.active{background:var(--workaround);color:#fff}
+.btn-recusar{border-color:var(--refuse);color:var(--refuse)} .btn-recusar.active{background:var(--refuse);color:#fff}
+.saving{font-size:11px;color:var(--gray-light);margin-left:6px}
+.empty{padding:26px;text-align:center;color:var(--gray);font-size:13px}
+.footer{max-width:1600px;margin:0 auto;padding:18px 24px 30px;color:var(--gray-light);font-size:11px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer b{color:var(--navy)}
+.overlay{position:fixed;inset:0;background:rgba(12,35,64,.55);display:flex;align-items:center;justify-content:center;z-index:200}
+.overlay .box{background:#fff;border-radius:14px;padding:26px 30px;max-width:440px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.overlay h3{color:var(--navy);margin-bottom:8px}
+.overlay p{font-size:13px;color:var(--gray);margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="tb-brand">
+      <div class="tb-logo">TOTVS</div>
+      <div class="tb-titles">
+        <div class="t1">TOTVS · Santa Catarina</div>
+        <div class="t2">Serviço × Comercial — DIGITRO <span class="status load" id="connStatus">conectando…</span></div>
+        <div class="t3">Cliente 000348D0 · dados ao vivo do Supabase (schema svc_comercial) · decisões em cockpit.decisoes</div>
+      </div>
+    </div>
+    <div class="tb-kpis" id="kpis"></div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-p="geral">Visão geral</button>
+  <button class="tab" data-p="tags">Decisões por tag <span class="b" id="btags">9</span></button>
+  <button class="tab" data-p="conflitos">Conflitos RFP × GAP <span class="b" id="bconf">0</span></button>
+  <button class="tab" data-p="nlm">NotebookLM</button>
+  <button class="tab" data-p="decisao">Tomada de decisão <span class="b" id="bdec">0</span></button>
+</div>
+
+<div class="container">
+  <div class="panel active" id="p-geral">
+    <div class="hero">
+      <div>
+        <div class="lbl">Risco comercial — horas estimadas ainda não aprovadas</div>
+        <div class="big" id="heroH">— <span class="u">h</span></div>
+        <div class="desc">Funcionalidades vendidas na RFP como “atende nativo” que internamente estão orçadas como desenvolvimento (GAP). As decisões desta tela gravam ao vivo no Supabase e recalculam os KPIs.</div>
+      </div>
+      <div class="hero-stats">
+        <div><div class="big" id="heroConf">8</div><div class="lbl">conflitos Alto</div></div>
+        <div><div class="big" id="heroPers">1.006<span class="u">h</span></div><div class="lbl">personalizações<br>(R$ 221.320)</div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="num">1</span> Funil de horas — Serviço × Comercial</h3>
+        <div class="sub">Estimado (universo) → Aprovado · Não aprovado · Saindo/Cancelado. Recalcula com as decisões ao vivo.</div>
+        <div class="funnel" id="funnel"></div>
+      </div>
+      <div class="card">
+        <h3><span class="num">2</span> Horas por etapa GAP</h3>
+        <div class="sub">Onde está concentrado o esforço no fluxo do projeto.</div>
+        <div class="chart-box"><canvas id="chEtapa"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="num">3</span> Horas por produto/módulo</h3>
+      <div class="sub">Distribuição do esforço de desenvolvimento por produto.</div>
+      <div class="chart-box tall"><canvas id="chProd"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-tags">
+    <p class="note">Conceito <b>dashboard-tags-gaps</b>: cada dimensão de tag do Tasks SC, com as horas <b>empilhadas por decisão</b> (Pendente · Aprovar · 2ª Fase · Contorno · Recusar). É como as tomadas de decisão se distribuem pelo escopo.</p>
+    <div class="grid3">
+      <div class="card"><h3>Etapa GAP</h3><div class="chart-box"><canvas id="tg_etapa_gap"></canvas></div></div>
+      <div class="card"><h3>Classificação GAP</h3><div class="chart-box"><canvas id="tg_classificacao_gap"></canvas></div></div>
+      <div class="card"><h3>Tipo de Atividade</h3><div class="chart-box"><canvas id="tg_tipo_atividade"></canvas></div></div>
+      <div class="card"><h3>Produto</h3><div class="chart-box"><canvas id="tg_produto"></canvas></div></div>
+      <div class="card"><h3>Status Tasks</h3><div class="chart-box"><canvas id="tg_status_tasks"></canvas></div></div>
+      <div class="card"><h3>Apoio</h3><div class="chart-box"><canvas id="tg_apoio"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-conflitos">
+    <p class="note">Requisitos respondidos na RFP como “Atende = Sim / Escopo” que viraram GAP. Clique em <b>NLM</b> para a nota comercial. Linhas vermelhas = grau Alto.</p>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table id="tConf"><thead><tr>
+        <th>GAP(s)</th><th>Funcionalidade</th><th>Módulo</th><th>Resp. RFP</th><th>Observação RFP</th><th>Grau</th><th>NLM</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="panel" id="p-nlm">
+    <p class="nlm-src">Fonte: NotebookLM “Projeto Digitro” — 58 fontes (RFP, proposta, atas, conferência de GAPs). Resumos por grupo de conflito (no fluxo real, gravados no ticket com prefixo <b>NOTEBOOKLM:</b>).</p>
+    <div id="nlmCards"></div>
+  </div>
+
+  <div class="panel" id="p-decisao">
+    <p class="note">As decisões gravam <b>ao vivo</b> em <code>cockpit.decisoes</code> (multiusuário) via função segura, restrita à DÍGITRO. Nada é escrito no Tasks SC até promover.</p>
+    <div class="dec-controls">
+      <select id="decGroup">
+        <option value="etapa_gap">Agrupar: Etapa GAP</option>
+        <option value="produto">Agrupar: Produto</option>
+        <option value="bucket">Agrupar: Balde de horas</option>
+        <option value="grau">Agrupar: Grau de conflito</option>
+        <option value="none">Sem agrupamento</option>
+      </select>
+      <select id="decFilter">
+        <option value="all">Todos</option>
+        <option value="conf">Só em conflito RFP</option>
+        <option value="est">Só com estimativa (&gt;0h)</option>
+        <option value="pend">Só pendentes de decisão</option>
+      </select>
+      <input id="decSearch" placeholder="Buscar por id, título, produto, etapa…">
+      <button class="btn-ghost" id="btnReload">↻ Recarregar</button>
+      <button class="btn-ghost" id="btnExport">Exportar CSV</button>
+    </div>
+    <div id="decList"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>Painel <b>Serviço × Comercial</b> · online (Vercel + Supabase) · conceitos dashboard-tomada-decisao + dashboard-tags-gaps + NotebookLM.</div>
+  <div><b>totvs.com</b> · leitura svc_comercial.v_gaps · gravação svc_comercial.set_decisao → cockpit.decisoes</div>
+</div>
+
+<div class="overlay" id="errOverlay" style="display:none"><div class="box">
+  <h3>Não consegui carregar os dados</h3>
+  <p id="errMsg"></p>
+  <p>Verifique a conexão e recarregue a página.</p>
+  <button class="btn-ghost" onclick="location.reload()">Recarregar</button>
+</div></div>
+
+<script>
+// ===== Config Supabase (chave publishable — pública por design, protegida por RLS/policies) =====
+const SB_URL = 'https://kpimalwnswxalwbidkog.supabase.co';
+const SB_KEY = 'sb_publishable_XVFQmyH8DmU9SJ09v4luZA__7Vxg0nD';
+const sb = window.supabase.createClient(SB_URL, SB_KEY, { db:{ schema:'svc_comercial' } });
+
+// ===== Curadoria estática: conflitos RFP × GAP + notas NotebookLM (por código de ticket) =====
+const CONFLITOS = [
+  {ids:['00012230'],titulo:'Etiquetas - Código de Barras (EAN)',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
+  {ids:['00012226'],titulo:'Etiquetas - Localização',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
+  {ids:['00011332'],titulo:'Etiquetas - ANATEL',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
+  {ids:['00012231'],titulo:'Etiquetas - Rastreabilidade',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'Rastreabilidade personalizável de materiais.',grupo:'etiquetas'},
+  {ids:['00011561'],titulo:'Envio de documentos anexados por e-mail ao faturar',modulo:'Faturamento',grau:'Alto',rfp:'Sim / Nativo (sem ressalva)',obs:'Disparo automático de XML/DANFE/boleto + anexos (CNDs).',grupo:'envio_email'},
+  {ids:['00013021'],titulo:'Comissão - Relatório / baixa com NF',modulo:'Financeiro',grau:'Alto',rfp:'Sim / Nativo',obs:'“Regras de comissionamento devem ser personalizadas.”',grupo:'comissao'},
+  {ids:['00013007'],titulo:'Política de precificação personalizada',modulo:'Comercial',grau:'Alto',rfp:'Sim / Nativo',obs:'“A informação de precificação e custos deverá vir do ERP.”',grupo:'precificacao'},
+  {ids:['00014126'],titulo:'Registrar o histórico por cliente',modulo:'Comercial',grau:'Alto',rfp:'Sim / Nativo',obs:'Histórico desde 1ª contratação até renovações.',grupo:'historico'},
+  {ids:['00012228','00012235','00012369'],titulo:'Etiquetas - Esp. Técnicas / Minuta / RAC',modulo:'Estoque',grau:'Médio',rfp:'Sim / Nativo',obs:'Subtipos não citados literalmente na RFP.',grupo:'etiquetas'},
+  {ids:['00013004'],titulo:'Comissão multinível',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'“Regras de comissionamento devem ser personalizadas.”',grupo:'comissao'},
+  {ids:['00013005'],titulo:'Acompanhamento de metas comerciais no contrato',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'Metas/comissões por etapa do funil.',grupo:'comissao'},
+  {ids:['00013006'],titulo:'Dashboard comercial',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'Dashboards de performance do funil.',grupo:'comercial'},
+  {ids:['00010891'],titulo:'Fluxo de aprovação - borderô de pagamento',modulo:'Financeiro',grau:'Médio',rfp:'Sim / Nativo',obs:'“Personalização via Workflow.”',grupo:'workflow'},
+  {ids:['00014127'],titulo:'Carteira Cliente / Audit Trail',modulo:'Comercial',grau:'Médio',rfp:'Sim / Nativo',obs:'Controle de histórico com data e responsável.',grupo:'historico'},
+  {ids:['00011811'],titulo:'Classificação de risco e análise de crédito',modulo:'Financeiro',grau:'Médio',rfp:'Sim / Nativo',obs:'“Via integração c/ Protheus.”',grupo:'credito'},
+  {ids:['00012992'],titulo:'Classificação de fornecedores',modulo:'Compras',grau:'Médio',rfp:'Sim / Nativo',obs:'Segmentação personalizável de clientes/fornecedores.',grupo:'cadastros'},
+  {ids:['00012993'],titulo:'Relatório PC em aberto com prazo de entrega',modulo:'Compras',grau:'Médio',rfp:'Sim / Nativo',obs:'Via TOTVS SmartView.',grupo:'compras'},
+  {ids:['00011991'],titulo:'Saldo/notas em poder de terceiros',modulo:'Fiscal',grau:'Médio',rfp:'Sim / Nativo',obs:'Controle de saldo em posse de terceiros.',grupo:'estoque'},
+  {ids:['00010911','00012808','00012810','00013512'],titulo:'Servidor/Gerador/Gestão de licenças',modulo:'Geral',grau:'Médio',rfp:'Sim / Nativo',obs:'Integração c/ servidor de licenças está Fora do Escopo (API).',grupo:'licencas'},
+  {ids:['00010910','00013391','00014128','00014129','00014130','00014633'],titulo:'Integração suporte / Field Service / Controle de atendimentos',modulo:'Gestão de Serviços',grau:'Médio/Alto',rfp:'Sim / Nativo',obs:'TOTVS Field Service nativo; integrações externas = Médio.',grupo:'suporte'},
+  {ids:['00012999','00013000','00013001','00013002'],titulo:'Amarrações Plano Contas × CC × Item Contábil + Validadores',modulo:'Contabilidade',grau:'Médio',rfp:'Sim / Nativo',obs:'Gestão de múltiplas UN, CC e contas.',grupo:'contabil'},
+  {ids:['00014087'],titulo:'Campos customizados proposta × contrato',modulo:'Comercial',grau:'Médio',rfp:'Sim / Nativo',obs:'“Avaliar extensão da integração padrão.”',grupo:'contratos'},
+  {ids:['00014088'],titulo:'Integração TCRM × Contratos',modulo:'Comercial',grau:'Médio',rfp:'Sim / Integrado Protheus',obs:'Gerar contrato após aceite da proposta.',grupo:'contratos'},
+];
+const NLM_NOTAS = {
+  etiquetas:'Proposta previu apenas “Impressão de Etiquetas (1 Modelo)” no módulo ACD. Em reunião, a TOTVS esclareceu que NÃO parametrizará todos os modelos atuais — a proposta contempla UMA etiqueta personalizada; modelos adicionais são itens extras de projeto. Horas diluídas no bloco Personalizações (1.006h / R$ 221.320,00).',
+  comissao:'Vinicius (TOTVS) admitiu: “100% das vezes que entra comissionamento, parte para desenvolvimento”. Regras da Dígitro: liberação só após recebimento financeiro; comissão multinível/split (ex. 5%/3%/1% na mesma venda); validação de margem mínima (ex. 45%). Protheus suporta até 5 representantes por contrato; regras específicas foram para a fila de GAP. Recomendado MIT de mudança de escopo.',
+  precificacao:'A Dígitro busca dar autonomia ao vendedor para obter preço instantâneo (~80% dos casos) sem suporte interno. TOTVS sugeriu transformar variações (prazos 12/24/36, faixas de volume) em Part Numbers (SKUs), tabelas de preço por UF, faixas de desconto e validade; apresentou o módulo Formação de Preço para eliminar planilhas externas.',
+  envio_email:'Envio manual de CNDs/comprovantes a órgãos públicos é gargalo operacional (“processo desgraçado” no Datasul). TOTVS sugeriu Banco de Conhecimento para centralizar documentos por cliente/contrato; a automação de anexos variáveis por cliente exige personalização. Proposta lista “Envio do boleto com a NFe” no bloco de Personalizações.',
+  historico:'Histórico do cliente (1ª contratação → ampliações/renovações) e Audit Trail. Tratado em reunião como necessidade de registro contínuo; parte recai sobre desenvolvimento (Alto) e parte sobre controle de alterações (Médio).',
+};
+const CONF_BY_CODE = {}; CONFLITOS.forEach(c=>c.ids.forEach(id=>CONF_BY_CODE[id]=c.grau));
+const IDS_BY_GRUPO = {}; CONFLITOS.forEach(c=>{(IDS_BY_GRUPO[c.grupo]=IDS_BY_GRUPO[c.grupo]||[]).push(...c.ids);});
+
+// ===== estado =====
+let GAPS = [];
+const DEC = {aprovar:'Aprovar',segunda_fase:'2ª Fase',contorno:'Contorno',recusar:'Recusar'};
+const DEC_COLOR = {pendente:'#B9B9C8',aprovar:'#1E9E6A',segunda_fase:'#E8A33D',contorno:'#0099B5',recusar:'#D64550'};
+const fmt = n => (Math.round((+n||0)*10)/10).toLocaleString('pt-BR');
+
+// balde-base a partir dos campos ao vivo (de-para aprovado, adaptado ao schema cockpit)
+const APROVADO_ETAPA = new Set(['Aprovado','Desenvolvimento','Homologacao','Go-Live']);
+const APROVADO_STATUS = new Set(['Em Andamento','Resolvido','Validacao Cliente']);
+function baseBucket(g){
+  const st=(g.status_tasks||''), et=(g.etapa_gap||''), e=+g.est||0;
+  if(st==='Cancelado') return 'saindo';
+  if(APROVADO_ETAPA.has(et) || APROVADO_STATUS.has(st)) return 'aprovado';
+  if(e>0) return 'naoaprovado';
+  return 'sem_est';
+}
+function effBucket(g){
+  const d=g.decisao;
+  if(d==='recusar') return 'saindo';
+  if(d==='aprovar'||d==='segunda_fase'||d==='contorno') return 'aprovado';
+  return baseBucket(g);
+}
+function computeBuckets(){
+  const soma={estimado:0,aprovado:0,naoaprovado:0,saindo:0};
+  const cont={estimado:0,aprovado:0,naoaprovado:0,saindo:0,decid:0};
+  GAPS.forEach(g=>{
+    const e=+g.est||0;
+    if(e>0){soma.estimado+=e;cont.estimado++;}
+    if(g.decisao) cont.decid++;
+    const b=effBucket(g);
+    if(b in soma && b!=='estimado'){soma[b]+=e;cont[b]++;}
+  });
+  return {soma,cont};
+}
+
+function renderKpis(){
+  const {soma,cont}=computeBuckets(); const tot=soma.estimado||1;
+  const pills=[
+    ['estimado','Estimado',soma.estimado,`${cont.estimado} itens`],
+    ['aprovado','Aprovado',soma.aprovado,`${fmt(soma.aprovado/tot*100)}%`],
+    ['naoaprovado','Não aprovado',soma.naoaprovado,`${fmt(soma.naoaprovado/tot*100)}%`],
+    ['saindo','Saindo/Cancel.',soma.saindo,`${cont.saindo} itens`],
+    ['decid','Decididos',cont.decid,`de ${GAPS.length}`],
+  ];
+  document.getElementById('kpis').innerHTML = pills.map(([c,l,v,s])=>
+    `<div class="kpi-pill ${c}"><div class="lbl">${l}</div><div class="val">${c==='decid'?v:fmt(v)}<span class="u">${c==='decid'?'':'h'}</span></div><div class="pct">${s}</div></div>`).join('');
+  document.getElementById('heroH').innerHTML = fmt(soma.naoaprovado)+' <span class="u">h</span>';
+  const fb=[['estimado','Estimado (universo)',soma.estimado],['aprovado','Aprovado como GAP',soma.aprovado],
+    ['naoaprovado','Estimado, não aprovado',soma.naoaprovado],['saindo','Saindo / Cancelado',soma.saindo]];
+  document.getElementById('funnel').innerHTML = fb.map(([k,l,v])=>
+    `<div class="fbar"><div class="fn">${l}</div><div class="ft f-${k}"><span style="width:${Math.max(2,v/tot*100)}%"></span></div><div class="fv">${fmt(v)} h</div></div>`).join('');
+}
+
+let charts={};
+function mkBar(id,labels,data,color,horiz){
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:color,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:horiz?'y':'x',plugins:{legend:{display:false}}}});
+}
+function renderGeralCharts(){
+  const byEt={},byPr={};
+  GAPS.forEach(g=>{const e=+g.est||0;if(e>0){byEt[g.etapa_gap||'—']=(byEt[g.etapa_gap||'—']||0)+e;byPr[g.produto||'—']=(byPr[g.produto||'—']||0)+e;}});
+  const et=Object.entries(byEt).sort((a,b)=>b[1]-a[1]);
+  const pr=Object.entries(byPr).sort((a,b)=>b[1]-a[1]);
+  mkBar('chEtapa',et.map(x=>x[0]),et.map(x=>x[1]),'#6F5BFF',true);
+  mkBar('chProd',pr.map(x=>x[0]),pr.map(x=>x[1]),'#0C2340',false);
+}
+// dashboard-tags-gaps: horas por dimensão, empilhadas por decisão
+function renderTagCharts(){
+  const dims=['etapa_gap','classificacao_gap','tipo_atividade','produto','status_tasks','apoio'];
+  const decs=['pendente','aprovar','segunda_fase','contorno','recusar'];
+  dims.forEach(dim=>{
+    const labels=[...new Set(GAPS.map(g=>g[dim]||'—'))];
+    const acc={}; labels.forEach(l=>acc[l]=Object.fromEntries(decs.map(d=>[d,0])));
+    GAPS.forEach(g=>{const l=g[dim]||'—';const d=g.decisao||'pendente';acc[l][d]+=(+g.est||0);});
+    const datasets=decs.map(d=>({label:d==='pendente'?'Pendente':DEC[d],data:labels.map(l=>acc[l][d]),backgroundColor:DEC_COLOR[d]}));
+    const id='tg_'+dim;
+    if(charts[id])charts[id].destroy();
+    charts[id]=new Chart(document.getElementById(id),{type:'bar',
+      data:{labels,datasets},
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+        plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:9}}}},
+        scales:{x:{stacked:true},y:{stacked:true,ticks:{font:{size:9}}}}}});
+  });
+}
+
+function renderConflitos(){
+  document.getElementById('bconf').textContent=CONFLITOS.length;
+  const tb=document.querySelector('#tConf tbody');
+  tb.innerHTML=CONFLITOS.map((c,i)=>{
+    const ids=c.ids.map(x=>`<span class="code">${x}</span>`).join('');
+    const nlm=NLM_NOTAS[c.grupo]?`<span class="nlmtag" data-i="${i}">＋ NLM</span>`:'—';
+    return `<tr class="${c.grau==='Alto'?'alto':''}"><td>${ids}</td><td><b>${c.titulo}</b></td><td>${c.modulo}</td><td>${c.rfp}</td><td>${c.obs}</td><td><span class="grau ${c.grau.replace('/','')}">${c.grau}</span></td><td>${nlm}</td></tr>`;
+  }).join('');
+  tb.querySelectorAll('.nlmtag').forEach(t=>t.onclick=()=>{
+    const c=CONFLITOS[+t.dataset.i],row=t.closest('tr');
+    if(row.nextElementSibling&&row.nextElementSibling.classList.contains('nlmrow')){row.nextElementSibling.remove();return;}
+    const tr=document.createElement('tr');tr.className='nlmrow';
+    tr.innerHTML=`<td colspan="7"><b>NotebookLM · ${c.titulo}:</b> ${NLM_NOTAS[c.grupo]}</td>`;row.after(tr);
+  });
+}
+function renderNlm(){
+  const titles={etiquetas:'Etiquetas (código de barras, localização, ANATEL, rastreabilidade)',comissao:'Comissão — relatório, baixa com NF, multinível, metas',precificacao:'Política de precificação personalizada',envio_email:'Envio de documentos anexados por e-mail ao faturar',historico:'Registrar histórico por cliente'};
+  document.getElementById('nlmCards').innerHTML=Object.keys(NLM_NOTAS).map(g=>{
+    const ids=(IDS_BY_GRUPO[g]||[]).map(x=>`<span class="code">${x}</span>`).join('');
+    return `<div class="nlm-card"><h4>${titles[g]||g}</h4><div class="ids">${ids}</div><p>${NLM_NOTAS[g]}</p></div>`;
+  }).join('');
+}
+
+function taskHTML(g){
+  const d=g.decisao, grau=CONF_BY_CODE[g.code];
+  const graut=grau?`<span class="tag-mini ${grau==='Alto'?'alto':'medio'}">RFP: ${grau}</span>`:'';
+  const btns=Object.entries(DEC).map(([k,l])=>`<button class="btn-decide btn-${k} ${d===k?'active':''}" data-uuid="${g.uuid_ticket}" data-d="${k}">${l}</button>`).join('');
+  return `<div class="task ${d?('d-'+d):''}" data-uuid="${g.uuid_ticket}">
+    <div class="task-top"><div>
+      <div class="task-id-row"><span class="code">${g.code||'—'}</span><span class="task-title">${g.titulo||''}</span></div>
+      <div class="task-meta"><span class="tag-mini modulo">${g.produto||'—'}</span><span class="tag-mini etapa">${g.etapa_gap||'—'}</span><span class="tag-mini">${g.status_tasks||'—'}</span>${graut}</div>
+    </div><div class="task-hours"><div class="h">${+g.est>0?fmt(g.est):'—'}<span class="u">h</span></div><div class="l">estim.</div></div></div>
+    <div class="task-actions">${btns}<span class="saving" data-sv="${g.uuid_ticket}"></span></div></div>`;
+}
+function renderDec(){
+  const grp=document.getElementById('decGroup').value, flt=document.getElementById('decFilter').value, q=document.getElementById('decSearch').value.trim().toLowerCase();
+  let list=GAPS.filter(g=>{
+    if(flt==='conf'&&!CONF_BY_CODE[g.code])return false;
+    if(flt==='est'&&!(+g.est>0))return false;
+    if(flt==='pend'&&g.decisao)return false;
+    if(q){const hay=((g.code||'')+' '+(g.titulo||'')+' '+(g.produto||'')+' '+(g.etapa_gap||'')).toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+  document.getElementById('bdec').textContent=list.length;
+  const cont=document.getElementById('decList');
+  if(!list.length){cont.innerHTML='<div class="empty">Nenhum item para os filtros atuais.</div>';return;}
+  if(grp==='none'){cont.innerHTML=list.map(taskHTML).join('');}
+  else{
+    const keyf={etapa_gap:g=>g.etapa_gap||'—',produto:g=>g.produto||'—',bucket:g=>({estimado:'Estimado',aprovado:'Aprovado',naoaprovado:'Não aprovado',saindo:'Saindo/Cancelado',sem_est:'Sem estimativa'})[effBucket(g)],grau:g=>CONF_BY_CODE[g.code]?('Conflito '+CONF_BY_CODE[g.code]):'Sem conflito RFP'}[grp];
+    const groups={};list.forEach(g=>{const k=keyf(g);(groups[k]=groups[k]||[]).push(g);});
+    cont.innerHTML=Object.keys(groups).sort().map(k=>{
+      const hrs=groups[k].reduce((s,g)=>s+(+g.est||0),0);
+      return `<div class="card" style="padding:12px 15px"><h3 style="font-size:13px"><span class="num">${groups[k].length}</span> ${k} · ${fmt(hrs)} h</h3>${groups[k].map(taskHTML).join('')}</div>`;
+    }).join('');
+  }
+  bindBtns();
+}
+function bindBtns(){
+  document.querySelectorAll('.btn-decide').forEach(b=>b.onclick=()=>onDecide(b.dataset.uuid,b.dataset.d));
+}
+async function onDecide(uuid,d){
+  const g=GAPS.find(x=>x.uuid_ticket===uuid); if(!g)return;
+  const novo = (g.decisao===d) ? null : d;   // toggle
+  const sv=document.querySelector(`[data-sv="${uuid}"]`); if(sv)sv.textContent='salvando…';
+  const prev=g.decisao; g.decisao=novo;       // otimista
+  renderKpis();renderDec();
+  const {error}=await sb.rpc('set_decisao',{p_uuid:uuid,p_decisao:novo,p_by:'painel-web'});
+  if(error){ g.decisao=prev; renderKpis();renderDec(); alert('Falha ao gravar decisão: '+error.message); }
+  else { const s=document.querySelector(`[data-sv="${uuid}"]`); if(s){s.textContent='salvo ✓';setTimeout(()=>{s.textContent='';},1200);} }
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById('p-'+t.dataset.p).classList.add('active');
+  if(t.dataset.p==='geral')renderGeralCharts();
+  if(t.dataset.p==='tags')renderTagCharts();
+});
+['decGroup','decFilter'].forEach(id=>document.getElementById(id).onchange=renderDec);
+document.getElementById('decSearch').oninput=renderDec;
+document.getElementById('btnReload').onclick=loadData;
+document.getElementById('btnExport').onclick=()=>{
+  const rows=[['code','titulo','produto','etapa_gap','status','horas','balde','decisao']];
+  GAPS.forEach(g=>rows.push([g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"',g.produto,g.etapa_gap,g.status_tasks,g.est,effBucket(g),g.decisao||'']));
+  const blob=new Blob([rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='decisoes_servico_comercial_DIGITRO.csv';a.click();
+};
+
+async function loadData(){
+  const st=document.getElementById('connStatus'); st.className='status load'; st.textContent='carregando…';
+  const {data,error}=await sb.from('v_gaps').select('*');
+  if(error){ st.className='status err'; st.textContent='erro'; document.getElementById('errMsg').textContent=error.message; document.getElementById('errOverlay').style.display='flex'; return; }
+  GAPS=data||[];
+  st.className='status ok'; st.textContent=GAPS.length+' GAPs ao vivo';
+  renderKpis();renderGeralCharts();renderConflitos();renderNlm();renderDec();
+}
+loadData();
+</script>
+</body>
+</html>
