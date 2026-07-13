@@ -190,8 +190,8 @@ tr.alto td{background:#FCEDEF}
   <div class="scope-wrap">
     <label for="scopeSel">Escopo:</label>
     <select id="scopeSel">
-      <option value="gap">Só GAPs (tag GAP)</option>
-      <option value="all">Todos os tickets</option>
+      <option value="gap">Só GAPs (igual à tela de Reunião)</option>
+      <option value="all">Todos os tickets do cliente</option>
     </select>
     <span id="scopeInfo"></span>
   </div>
@@ -268,7 +268,7 @@ tr.alto td{background:#FCEDEF}
   </div>
 
   <div class="panel" id="p-decisao">
-    <p class="note">As decisões gravam <b>ao vivo</b> em <code>cockpit.decisoes</code> (multiusuário) via função segura, restrita à DÍGITRO. Nada é escrito no Tasks SC até promover.</p>
+    <p class="note">As decisões gravam <b>ao vivo</b> em <code>cockpit.decisoes</code> (multiusuário) via função segura, restrita à DÍGITRO. Nada é escrito no Tasks SC até promover. Itens <b>Cancelados/Resolvidos</b> não entram nesta lista (não se decide item fechado) — os cancelados aparecem no KPI <b>Saindo</b>.</p>
     <div class="dec-controls">
       <select id="decGroup">
         <option value="etapa_gap">Agrupar: Etapa GAP</option>
@@ -352,37 +352,45 @@ const DEC_COLOR = {pendente:'#B9B9C8',aprovar:'#1E9E6A',segunda_fase:'#E8A33D',c
 const fmt = n => (Math.round((+n||0)*10)/10).toLocaleString('pt-BR');
 
 // ===== ESCOPO =====
-let SCOPE = 'gap';                       // 'gap' = só tickets com tag GAP | 'all' = todos
-const scoped = () => SCOPE==='gap' ? GAPS.filter(g=>g.is_gap) : GAPS;
+// 'gap' = mesma definição da tela de Reunião: tem tag de etapa de GAP
+//         (GAP / LEVANTAR REQUISITOS / LEVANTAMENTO / ORCAMENTO PENDENTE)  -> is_gap
+// 'all' = todos os tickets do cliente
+let SCOPE = 'gap';
+// universo do escopo (INCLUI fechados — é de onde sai o balde "Saindo/Cancelado")
+const universo = () => SCOPE==='gap' ? GAPS.filter(g=>g.is_gap) : GAPS;
+// conjunto DECIDÍVEL: exclui Cancelado/Resolvido (não se decide item fechado).
+// No escopo 'gap' isto dá exatamente os 55 GAPs / 1.320h da tela de Reunião.
+const scoped = () => universo().filter(g=>!g.fechado);
 
 // ===== BALDES — guiados pela DECISÃO, não pela etapa do Tasks =====
-// Regra: só é "Aprovado" o que tem decisão registrada (Aprovar/2ª Fase/Contorno).
-// "Cancelado" no Tasks é fato (não decisão) e cai em Saindo. O resto estimado = sem decisão.
 function effBucket(g){
   const d=g.decisao;
   if(d==='recusar') return 'saindo';
   if(d==='aprovar'||d==='segunda_fase'||d==='contorno') return 'aprovado';
-  if((g.status_tasks||'')==='Cancelado') return 'saindo';
+  if(g.cancelado) return 'saindo';
   if((+g.est||0)>0) return 'naoaprovado';
   return 'sem_est';
 }
-// SITUAÇÃO no Tasks (≠ decisão): o que já está em execução/entregue.
+// SITUAÇÃO no Tasks (≠ decisão): o que já está em execução.
 const EXEC_ETAPA  = new Set(['Aprovado','Desenvolvimento','Homologacao','Go-Live']);
-const EXEC_STATUS = new Set(['Em Andamento','Resolvido','Validacao Cliente']);
+const EXEC_STATUS = new Set(['Em Andamento','Validacao Cliente']);
 const emExecucao = g => EXEC_ETAPA.has(g.etapa_gap||'') || EXEC_STATUS.has(g.status_tasks||'');
 
 function computeBuckets(){
   const soma={estimado:0,aprovado:0,naoaprovado:0,saindo:0,exec:0};
   const cont={estimado:0,aprovado:0,naoaprovado:0,saindo:0,exec:0,decid:0,total:0};
+  // decidíveis: estimado / aprovado / sem decisão / em execução
   scoped().forEach(g=>{
     const e=+g.est||0;
     cont.total++;
     if(e>0){soma.estimado+=e;cont.estimado++;}
     if(g.decisao) cont.decid++;
-    if(emExecucao(g) && (g.status_tasks||'')!=='Cancelado'){soma.exec+=e;cont.exec++;}
+    if(emExecucao(g)){soma.exec+=e;cont.exec++;}
     const b=effBucket(g);
-    if(b in soma && b!=='estimado' && b!=='exec'){soma[b]+=e;cont[b]++;}
+    if(b==='aprovado'||b==='naoaprovado'||b==='saindo'){soma[b]+=e;cont[b]++;}
   });
+  // fechados do universo entram só no balde Saindo (cancelados = "está saindo")
+  universo().filter(g=>g.cancelado).forEach(g=>{ soma.saindo+=(+g.est||0); cont.saindo++; });
   return {soma,cont};
 }
 
@@ -401,7 +409,8 @@ function renderKpis(){
     `<div class="kpi-pill ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="pct">${s}</div></div>`).join('');
   document.getElementById('heroH').innerHTML = fmt(soma.naoaprovado)+' <span class="u">h</span>';
   document.getElementById('scopeInfo').textContent =
-    `${cont.total} tickets · ${fmt(soma.estimado)} h estimadas`;
+    `${cont.total} decidíveis · ${fmt(soma.estimado)} h` +
+    (cont.saindo?` · ${cont.saindo} cancelados fora da lista`:'');
   const fb=[['estimado','Estimado (universo)',soma.estimado],['aprovado','Aprovado (decisão)',soma.aprovado],
     ['naoaprovado','Estimado, sem decisão',soma.naoaprovado],['saindo','Saindo / Cancelado',soma.saindo]];
   document.getElementById('funnel').innerHTML = fb.map(([k,l,v])=>
