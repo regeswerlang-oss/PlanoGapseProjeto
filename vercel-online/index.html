@@ -154,6 +154,15 @@ tr.alto td{background:#FCEDEF}
 .pg-contorno{background:#D6F0F7;color:#00697D} .pg-recusar{background:#FAD4D8;color:#B0212E}
 .pg-warn{font-size:9px;font-weight:800;background:#FCEBCF;color:#8A5A00;padding:2px 6px;border-radius:6px}
 .pg-empty{font-size:12px;color:#8A5A00;background:#FFF7EC;border-radius:8px;padding:9px 12px;margin-top:6px}
+
+/* seletor de escopo */
+.scope-wrap{margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:8px}
+.scope-wrap label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray)}
+.scope-wrap select{padding:8px 11px;border:1px solid #DCE3E8;border-radius:9px;font-family:var(--font);font-size:12.5px;background:#fff;color:var(--navy);font-weight:600}
+.scope-wrap #scopeInfo{font-size:11px;color:var(--gray)}
+.kpi-pill.exec{background:rgba(91,211,255,.10);border-color:rgba(91,211,255,.35)}
+.kpi-pill.exec .val{color:#5BD3FF}
+.kpi-pill.exec .lbl{color:#5BD3FF}
 </style>
 </head>
 <body>
@@ -178,15 +187,23 @@ tr.alto td{background:#FCEDEF}
   <button class="tab" data-p="nlm">NotebookLM</button>
   <button class="tab" data-p="pgrupos">Grupos de Personalização <span class="b" id="bpg">8</span></button>
   <button class="tab" data-p="decisao">Tomada de decisão <span class="b" id="bdec">0</span></button>
+  <div class="scope-wrap">
+    <label for="scopeSel">Escopo:</label>
+    <select id="scopeSel">
+      <option value="gap">Só GAPs (tag GAP)</option>
+      <option value="all">Todos os tickets</option>
+    </select>
+    <span id="scopeInfo"></span>
+  </div>
 </div>
 
 <div class="container">
   <div class="panel active" id="p-geral">
     <div class="hero">
       <div>
-        <div class="lbl">Risco comercial — horas estimadas ainda não aprovadas</div>
+        <div class="lbl">Risco comercial — horas estimadas sem decisão registrada</div>
         <div class="big" id="heroH">— <span class="u">h</span></div>
-        <div class="desc">Funcionalidades vendidas na RFP como “atende nativo” que internamente estão orçadas como desenvolvimento (GAP). As decisões desta tela gravam ao vivo no Supabase e recalculam os KPIs.</div>
+        <div class="desc">Só conta como <b>Aprovado</b> o item com <b>decisão registrada</b> (Aprovar / 2ª Fase / Contorno). A etapa do Tasks (Desenvolvimento, Go-Live…) aparece à parte, no KPI <b>Em execução</b> — é situação, não decisão.</div>
       </div>
       <div class="hero-stats">
         <div><div class="big" id="heroConf">8</div><div class="lbl">conflitos Alto</div></div>
@@ -239,7 +256,7 @@ tr.alto td{background:#FCEDEF}
   </div>
 
   <div class="panel" id="p-pgrupos">
-    <p class="note">Reconciliação <b>Proposta × Tasks</b>: o bloco de Personalização foi vendido agregado (<b>1.006h / R$ 221.320</b>), mas no Tasks SC vira dezenas de GAPs. Aqui, por grupo: <b>Est. Task</b> (soma ao vivo dos GAPs) × <b>Est. Proposta</b> (editável). Responde “quanto da proposta já virou GAP?”.</p>
+    <p class="note">Reconciliação <b>Proposta × Tasks</b>: o bloco de Personalização foi vendido agregado (<b>1.006h / R$ 221.320</b>), mas no Tasks SC vira dezenas de GAPs. Aqui, por grupo: <b>Est. Task</b> (soma ao vivo dos GAPs) × <b>Est. Proposta</b> (editável). Responde “quanto da proposta já virou GAP?”. <i>Esta aba sempre considera todos os tickets do cliente (ignora o seletor de escopo), porque a proposta se compara ao esforço total do Tasks.</i></p>
     <div class="pg-kpis" id="pgKpis"></div>
     <div class="dec-controls">
       <button class="btn-ghost" id="pgReset">↺ Carregar do de-para</button>
@@ -334,49 +351,59 @@ const DEC = {aprovar:'Aprovar',segunda_fase:'2ª Fase',contorno:'Contorno',recus
 const DEC_COLOR = {pendente:'#B9B9C8',aprovar:'#1E9E6A',segunda_fase:'#E8A33D',contorno:'#0099B5',recusar:'#D64550'};
 const fmt = n => (Math.round((+n||0)*10)/10).toLocaleString('pt-BR');
 
-// balde-base a partir dos campos ao vivo (de-para aprovado, adaptado ao schema cockpit)
-const APROVADO_ETAPA = new Set(['Aprovado','Desenvolvimento','Homologacao','Go-Live']);
-const APROVADO_STATUS = new Set(['Em Andamento','Resolvido','Validacao Cliente']);
-function baseBucket(g){
-  const st=(g.status_tasks||''), et=(g.etapa_gap||''), e=+g.est||0;
-  if(st==='Cancelado') return 'saindo';
-  if(APROVADO_ETAPA.has(et) || APROVADO_STATUS.has(st)) return 'aprovado';
-  if(e>0) return 'naoaprovado';
-  return 'sem_est';
-}
+// ===== ESCOPO =====
+let SCOPE = 'gap';                       // 'gap' = só tickets com tag GAP | 'all' = todos
+const scoped = () => SCOPE==='gap' ? GAPS.filter(g=>g.is_gap) : GAPS;
+
+// ===== BALDES — guiados pela DECISÃO, não pela etapa do Tasks =====
+// Regra: só é "Aprovado" o que tem decisão registrada (Aprovar/2ª Fase/Contorno).
+// "Cancelado" no Tasks é fato (não decisão) e cai em Saindo. O resto estimado = sem decisão.
 function effBucket(g){
   const d=g.decisao;
   if(d==='recusar') return 'saindo';
   if(d==='aprovar'||d==='segunda_fase'||d==='contorno') return 'aprovado';
-  return baseBucket(g);
+  if((g.status_tasks||'')==='Cancelado') return 'saindo';
+  if((+g.est||0)>0) return 'naoaprovado';
+  return 'sem_est';
 }
+// SITUAÇÃO no Tasks (≠ decisão): o que já está em execução/entregue.
+const EXEC_ETAPA  = new Set(['Aprovado','Desenvolvimento','Homologacao','Go-Live']);
+const EXEC_STATUS = new Set(['Em Andamento','Resolvido','Validacao Cliente']);
+const emExecucao = g => EXEC_ETAPA.has(g.etapa_gap||'') || EXEC_STATUS.has(g.status_tasks||'');
+
 function computeBuckets(){
-  const soma={estimado:0,aprovado:0,naoaprovado:0,saindo:0};
-  const cont={estimado:0,aprovado:0,naoaprovado:0,saindo:0,decid:0};
-  GAPS.forEach(g=>{
+  const soma={estimado:0,aprovado:0,naoaprovado:0,saindo:0,exec:0};
+  const cont={estimado:0,aprovado:0,naoaprovado:0,saindo:0,exec:0,decid:0,total:0};
+  scoped().forEach(g=>{
     const e=+g.est||0;
+    cont.total++;
     if(e>0){soma.estimado+=e;cont.estimado++;}
     if(g.decisao) cont.decid++;
+    if(emExecucao(g) && (g.status_tasks||'')!=='Cancelado'){soma.exec+=e;cont.exec++;}
     const b=effBucket(g);
-    if(b in soma && b!=='estimado'){soma[b]+=e;cont[b]++;}
+    if(b in soma && b!=='estimado' && b!=='exec'){soma[b]+=e;cont[b]++;}
   });
   return {soma,cont};
 }
 
 function renderKpis(){
   const {soma,cont}=computeBuckets(); const tot=soma.estimado||1;
+  const pct = v => fmt(v/tot*100)+'%';
   const pills=[
-    ['estimado','Estimado',soma.estimado,`${cont.estimado} itens`],
-    ['aprovado','Aprovado',soma.aprovado,`${fmt(soma.aprovado/tot*100)}%`],
-    ['naoaprovado','Não aprovado',soma.naoaprovado,`${fmt(soma.naoaprovado/tot*100)}%`],
-    ['saindo','Saindo/Cancel.',soma.saindo,`${cont.saindo} itens`],
-    ['decid','Decididos',cont.decid,`de ${GAPS.length}`],
+    ['estimado','Estimado',fmt(soma.estimado)+'<span class="u">h</span>',`${cont.estimado} itens`],
+    ['aprovado','Aprovado (decisão)',fmt(soma.aprovado)+'<span class="u">h</span>',`${cont.aprovado} decid. · ${pct(soma.aprovado)}`],
+    ['naoaprovado','Sem decisão',fmt(soma.naoaprovado)+'<span class="u">h</span>',`${pct(soma.naoaprovado)} do estimado`],
+    ['saindo','Saindo/Cancel.',fmt(soma.saindo)+'<span class="u">h</span>',`${cont.saindo} itens`],
+    ['decid','Decididos',String(cont.decid),`de ${cont.total}`],
+    ['exec','Em execução (Tasks)',fmt(soma.exec)+'<span class="u">h</span>',`situação, não decisão`],
   ];
   document.getElementById('kpis').innerHTML = pills.map(([c,l,v,s])=>
-    `<div class="kpi-pill ${c}"><div class="lbl">${l}</div><div class="val">${c==='decid'?v:fmt(v)}<span class="u">${c==='decid'?'':'h'}</span></div><div class="pct">${s}</div></div>`).join('');
+    `<div class="kpi-pill ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="pct">${s}</div></div>`).join('');
   document.getElementById('heroH').innerHTML = fmt(soma.naoaprovado)+' <span class="u">h</span>';
-  const fb=[['estimado','Estimado (universo)',soma.estimado],['aprovado','Aprovado como GAP',soma.aprovado],
-    ['naoaprovado','Estimado, não aprovado',soma.naoaprovado],['saindo','Saindo / Cancelado',soma.saindo]];
+  document.getElementById('scopeInfo').textContent =
+    `${cont.total} tickets · ${fmt(soma.estimado)} h estimadas`;
+  const fb=[['estimado','Estimado (universo)',soma.estimado],['aprovado','Aprovado (decisão)',soma.aprovado],
+    ['naoaprovado','Estimado, sem decisão',soma.naoaprovado],['saindo','Saindo / Cancelado',soma.saindo]];
   document.getElementById('funnel').innerHTML = fb.map(([k,l,v])=>
     `<div class="fbar"><div class="fn">${l}</div><div class="ft f-${k}"><span style="width:${Math.max(2,v/tot*100)}%"></span></div><div class="fv">${fmt(v)} h</div></div>`).join('');
 }
@@ -390,7 +417,7 @@ function mkBar(id,labels,data,color,horiz){
 }
 function renderGeralCharts(){
   const byEt={},byPr={};
-  GAPS.forEach(g=>{const e=+g.est||0;if(e>0){byEt[g.etapa_gap||'—']=(byEt[g.etapa_gap||'—']||0)+e;byPr[g.produto||'—']=(byPr[g.produto||'—']||0)+e;}});
+  scoped().forEach(g=>{const e=+g.est||0;if(e>0){byEt[g.etapa_gap||'—']=(byEt[g.etapa_gap||'—']||0)+e;byPr[g.produto||'—']=(byPr[g.produto||'—']||0)+e;}});
   const et=Object.entries(byEt).sort((a,b)=>b[1]-a[1]);
   const pr=Object.entries(byPr).sort((a,b)=>b[1]-a[1]);
   mkBar('chEtapa',et.map(x=>x[0]),et.map(x=>x[1]),'#6F5BFF',true);
@@ -401,9 +428,10 @@ function renderTagCharts(){
   const dims=['etapa_gap','classificacao_gap','tipo_atividade','produto','status_tasks','apoio'];
   const decs=['pendente','aprovar','segunda_fase','contorno','recusar'];
   dims.forEach(dim=>{
-    const labels=[...new Set(GAPS.map(g=>g[dim]||'—'))];
+    const S=scoped();
+    const labels=[...new Set(S.map(g=>g[dim]||'—'))];
     const acc={}; labels.forEach(l=>acc[l]=Object.fromEntries(decs.map(d=>[d,0])));
-    GAPS.forEach(g=>{const l=g[dim]||'—';const d=g.decisao||'pendente';acc[l][d]+=(+g.est||0);});
+    S.forEach(g=>{const l=g[dim]||'—';const d=g.decisao||'pendente';acc[l][d]+=(+g.est||0);});
     const datasets=decs.map(d=>({label:d==='pendente'?'Pendente':DEC[d],data:labels.map(l=>acc[l][d]),backgroundColor:DEC_COLOR[d]}));
     const id='tg_'+dim;
     if(charts[id])charts[id].destroy();
@@ -451,7 +479,7 @@ function taskHTML(g){
 }
 function renderDec(){
   const grp=document.getElementById('decGroup').value, flt=document.getElementById('decFilter').value, q=document.getElementById('decSearch').value.trim().toLowerCase();
-  let list=GAPS.filter(g=>{
+  let list=scoped().filter(g=>{
     if(flt==='conf'&&!CONF_BY_CODE[g.code])return false;
     if(flt==='est'&&!(+g.est>0))return false;
     if(flt==='pend'&&g.decisao)return false;
@@ -586,12 +614,19 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.p==='tags')renderTagCharts();
   if(t.dataset.p==='pgrupos')renderPG();
 });
+document.getElementById('scopeSel').onchange=e=>{
+  SCOPE=e.target.value;
+  renderKpis();renderDec();
+  const act=document.querySelector('.tab.active').dataset.p;
+  if(act==='geral')renderGeralCharts();
+  if(act==='tags')renderTagCharts();
+};
 ['decGroup','decFilter'].forEach(id=>document.getElementById(id).onchange=renderDec);
 document.getElementById('decSearch').oninput=renderDec;
 document.getElementById('btnReload').onclick=loadData;
 document.getElementById('btnExport').onclick=()=>{
   const rows=[['code','titulo','produto','etapa_gap','status','horas','balde','decisao']];
-  GAPS.forEach(g=>rows.push([g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"',g.produto,g.etapa_gap,g.status_tasks,g.est,effBucket(g),g.decisao||'']));
+  scoped().forEach(g=>rows.push([g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"',g.produto,g.etapa_gap,g.status_tasks,g.est,effBucket(g),g.decisao||'']));
   const blob=new Blob([rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='decisoes_servico_comercial_DIGITRO.csv';a.click();
 };
