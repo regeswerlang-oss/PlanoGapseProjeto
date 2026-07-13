@@ -6,6 +6,7 @@
 <title>Serviço × Comercial — DIGITRO · online</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="catalogo.js"></script>
 <style>
 :root{
   color-scheme:light;
@@ -163,6 +164,55 @@ tr.alto td{background:#FCEDEF}
 .kpi-pill.exec{background:rgba(91,211,255,.10);border-color:rgba(91,211,255,.35)}
 .kpi-pill.exec .val{color:#5BD3FF}
 .kpi-pill.exec .lbl{color:#5BD3FF}
+
+/* ===== Acerto de contas ===== */
+.saldo-bar{position:sticky;top:78px;z-index:60;background:var(--grad);color:#fff;border-radius:14px;padding:16px 20px;margin-bottom:14px;
+  display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:16px;align-items:center;box-shadow:0 8px 26px rgba(12,35,64,.25)}
+.sb-cell{text-align:center}
+.sb-cell .l{font-size:10px;letter-spacing:.6px;text-transform:uppercase;opacity:.85;font-weight:700}
+.sb-cell .v{font-size:26px;font-weight:800;line-height:1.15}
+.sb-cell .v span{font-size:12px;opacity:.8}
+.sb-cell .d{font-size:11px;opacity:.8}
+.sb-cell.credito .v{color:#46D69E} .sb-cell.debito .v{color:#FF9AA5}
+.sb-saldo{background:rgba(255,255,255,.12);border-radius:11px;padding:10px 14px}
+.sb-saldo .v{font-size:30px}
+.sb-saldo .rs{font-size:13px;font-weight:700;opacity:.95;margin-top:2px}
+.sb-saldo.favor .v{color:#46D69E} .sb-saldo.contra .v{color:#FFC368}
+.ac-cfg{display:flex;align-items:center;gap:12px;padding:12px 18px}
+.ac-cfg label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--gray)}
+.ac-cfg input{width:100px;padding:7px 10px;border:1px solid #DCE3E8;border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);text-align:center}
+/* linhas */
+.ac-row{display:grid;grid-template-columns:26px 1fr 84px 96px 84px 26px;gap:10px;align-items:center;
+  padding:9px 10px;border-bottom:1px solid #EDF1F4;font-size:12.5px}
+.ac-row.mod{background:#F8F9FC;font-weight:700;border-left:4px solid var(--navy);border-radius:8px 8px 0 0;margin-top:8px}
+.ac-row.sub{padding-left:34px;font-size:12px}
+.ac-row.off{background:#FCEDEF}
+.ac-row.off .ac-nome{text-decoration:line-through;color:var(--gray)}
+.ac-nome{color:var(--ink)}
+.ac-row.mod .ac-nome{color:var(--navy)}
+.ac-num{text-align:right;font-weight:700;color:var(--navy)}
+.ac-num.muted{color:var(--gray);font-weight:600}
+.ac-num.neg{color:var(--refuse)}
+.ac-hdr{display:grid;grid-template-columns:26px 1fr 84px 96px 84px 26px;gap:10px;padding:7px 10px;
+  font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);font-weight:800;border-bottom:2px solid #EDF1F4}
+.ac-hdr .r{text-align:right}
+.ac-chk{width:17px;height:17px;cursor:pointer;accent-color:var(--refuse)}
+.ac-inp{width:88px;padding:5px 7px;border:1px solid #DCE3E8;border-radius:7px;font-size:12.5px;font-weight:700;
+  color:var(--refuse);text-align:right;background:#FFF8F8}
+.ac-inp:disabled{background:#F4F4F8;color:var(--gray-light);border-color:#EDF1F4;font-weight:500}
+.ac-exp{background:none;border:none;color:var(--gray);font-size:13px;cursor:pointer;padding:0}
+.ac-gapgrp{margin-top:10px;border:1px solid #EDF1F4;border-radius:10px;overflow:hidden}
+.ac-gapgrp .gh{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 12px;background:#F8F9FC;font-weight:700;font-size:12.5px;color:var(--navy)}
+.ac-gap{display:grid;grid-template-columns:26px auto 1fr auto auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid #EDF1F4;font-size:12.5px}
+.ac-gap.on{background:#F2FBF6}
+.ac-gap .h{font-weight:800;color:var(--navy);min-width:52px;text-align:right}
+.ac-chk.g{accent-color:var(--approve)}
+.ac-res{width:100%;border-collapse:collapse;font-size:13px}
+.ac-res td{padding:8px 10px;border-bottom:1px solid #EDF1F4}
+.ac-res td:last-child{text-align:right;font-weight:800;color:var(--navy)}
+.ac-res tr.tot td{border-top:2px solid var(--navy);border-bottom:none;font-size:15px;padding-top:11px}
+.ac-res tr.tot td:last-child{color:var(--roxo)}
+.ac-res .cr{color:var(--approve)} .ac-res .db{color:var(--refuse)}
 </style>
 </head>
 <body>
@@ -186,6 +236,7 @@ tr.alto td{background:#FCEDEF}
   <button class="tab" data-p="conflitos">Conflitos RFP × GAP <span class="b" id="bconf">0</span></button>
   <button class="tab" data-p="nlm">NotebookLM</button>
   <button class="tab" data-p="pgrupos">Grupos de Personalização <span class="b" id="bpg">8</span></button>
+  <button class="tab" data-p="acerto">Acerto de contas <span class="b" id="bac">0</span></button>
   <button class="tab" data-p="decisao">Tomada de decisão <span class="b" id="bdec">0</span></button>
   <div class="scope-wrap">
     <label for="scopeSel">Escopo:</label>
@@ -265,6 +316,64 @@ tr.alto td{background:#FCEDEF}
     </div>
     <div id="pgList"></div>
     <div class="card" id="pgFora"></div>
+  </div>
+
+  <!-- ===================== ACERTO DE CONTAS ===================== -->
+  <div class="panel" id="p-acerto">
+    <div class="saldo-bar" id="saldoBar"></div>
+
+    <p class="note">Monte a conta com o cliente: de um lado o que ele <b>cancelou / não vai implantar</b> (crédito), do outro os <b>GAPs</b> que ele aprovou (débito). Tudo o que você marcar aqui grava no Supabase e fica salvo para a reunião de acerto.</p>
+
+    <div class="card ac-cfg">
+      <label>Valor hora (R$)</label><input id="acRate" type="number" min="0" step="1" value="220">
+      <span class="note" style="margin:0">Base: 1.006h de personalização = R$ 221.320 → R$ 220/h. Ajuste se o contrato usar outra taxa.</span>
+    </div>
+
+    <!-- 1. MÓDULOS -->
+    <div class="card">
+      <h3><span class="num">1</span> Módulos contratados — contratado × cancelado × saldo</h3>
+      <div class="sub">2.348h de implantação (16 módulos / 149 subitens). Marque o módulo inteiro ou abra e marque subitens. As <b>horas canceladas são editáveis</b> — dá para cancelar parcial.</div>
+      <div id="acModulos"></div>
+    </div>
+
+    <!-- 2. PERSONALIZAÇÕES -->
+    <div class="card">
+      <h3><span class="num">2</span> Personalizações — bloco de 1.006h (aprovado na proposta)</h3>
+      <div class="sub">Bloco separado do contrato. Marque o que sai; as horas também são editáveis.</div>
+      <div id="acPers"></div>
+    </div>
+
+    <!-- 3. GAPs NO DÉBITO -->
+    <div class="card">
+      <h3><span class="num">3</span> GAPs que entram na conta (débito)</h3>
+      <div class="sub">Padrão: só os <b>Aprovados</b>. Você pode marcar por GAP ou por grupo inteiro.</div>
+      <div class="dec-controls">
+        <select id="acGapFilter">
+          <option value="aprovado">Só GAPs Aprovados</option>
+          <option value="compromisso">Aprovados + 2ª Fase + Contorno</option>
+          <option value="decidido">Todos com decisão</option>
+          <option value="todos">Todos os GAPs decidíveis</option>
+        </select>
+        <select id="acGapGroup">
+          <option value="produto">Agrupar: Produto</option>
+          <option value="etapa_gap">Agrupar: Etapa GAP</option>
+          <option value="decisao">Agrupar: Decisão</option>
+        </select>
+        <button class="btn-ghost" id="acSelAll">Marcar todos os visíveis</button>
+        <button class="btn-ghost" id="acSelNone">Desmarcar todos</button>
+      </div>
+      <div id="acGaps"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="num">4</span> Fechamento</h3>
+      <div id="acResumo"></div>
+      <div class="dec-controls" style="margin-top:12px">
+        <button class="btn-ghost" id="acExport">Exportar acerto (CSV)</button>
+        <button class="btn-ghost" id="acExportJson">Exportar (JSON)</button>
+        <button class="btn-ghost" id="acReset">Limpar tudo</button>
+      </div>
+    </div>
   </div>
 
   <div class="panel" id="p-decisao">
@@ -521,6 +630,7 @@ async function onDecide(uuid,d){
   const {error}=await sb.rpc('set_decisao',{p_uuid:uuid,p_decisao:novo,p_by:'painel-web'});
   if(error){ g.decisao=prev; renderKpis();renderDec(); alert('Falha ao gravar decisão: '+error.message); }
   else { const s=document.querySelector(`[data-sv="${uuid}"]`); if(s){s.textContent='salvo ✓';setTimeout(()=>{s.textContent='';},1200);} }
+  renderAcerto();   // a decisão muda o débito do acerto de contas
 }
 
 // ===== Grupos de Personalização (conceito: skill grupos-personalizacao-dashboard) =====
@@ -615,6 +725,244 @@ document.getElementById('pgExport').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='personalizacoes_DIGITRO.json';a.click();
 };
 
+// ===================== ACERTO DE CONTAS =====================
+let CANC={};        // chave -> {tipo,modulo,item,horas_contratadas,horas_canceladas}
+let ACG={};         // uuid_ticket -> {horas}
+let AC_AUTO=true;   // considerar automaticamente todos os GAPs do filtro
+const EXPANDED=new Set();
+const kMod  = m => 'modulo|'+m+'|';
+const kSub  = (m,i) => 'subitem|'+m+'|'+i;
+const kPers = n => 'personalizacao|'+n+'|';
+const rate  = () => +document.getElementById('acRate').value||0;
+const brl   = n => 'R$ '+(Math.round(n)).toLocaleString('pt-BR');
+
+async function loadAcerto(){
+  const [c,a]=await Promise.all([
+    sb.from('cancelamentos').select('*'),
+    sb.from('acerto_gaps').select('*')
+  ]);
+  CANC={}; (c.data||[]).forEach(r=>CANC[r.chave]=r);
+  ACG={};  (a.data||[]).forEach(r=>ACG[r.uuid_ticket]=r);
+}
+async function saveCancel(tipo,modulo,item,hContr,hCanc,ativo){
+  const {error}=await sb.rpc('set_cancelamento',{p_tipo:tipo,p_modulo:modulo,p_item:item||null,
+    p_horas_contratadas:hContr,p_horas_canceladas:hCanc,p_ativo:ativo,p_by:'painel-web'});
+  if(error){alert('Falha ao gravar cancelamento: '+error.message);return false;}
+  const k=tipo+'|'+modulo+'|'+(item||'');
+  if(ativo) CANC[k]={chave:k,tipo,modulo,item:item||null,horas_contratadas:hContr,horas_canceladas:hCanc};
+  else delete CANC[k];
+  return true;
+}
+async function saveAcertoGap(uuid,incluido){
+  const {error}=await sb.rpc('set_acerto_gap',{p_uuid:uuid,p_incluido:incluido,p_by:'painel-web'});
+  if(error){alert('Falha ao gravar seleção: '+error.message);return false;}
+  if(incluido) ACG[uuid]={uuid_ticket:uuid}; else delete ACG[uuid];
+  return true;
+}
+
+// --- créditos ---
+const canceladoModulo = m => CANC[kMod(m.modulo)]
+  ? (+CANC[kMod(m.modulo)].horas_canceladas||0)
+  : m.itens.reduce((s,i)=>s+(CANC[kSub(m.modulo,i.nome)]?+CANC[kSub(m.modulo,i.nome)].horas_canceladas||0:0),0);
+const creditoModulos = () => CATALOGO.reduce((s,m)=>s+canceladoModulo(m),0);
+const creditoPers    = () => (PG||[]).reduce((s,g)=>s+(CANC[kPers(g.nome)]?+CANC[kPers(g.nome)].horas_canceladas||0:0),0);
+
+// --- débito (GAPs) ---
+function gapsFiltrados(){
+  const f=document.getElementById('acGapFilter').value;
+  return scoped().filter(g=>{
+    if(f==='aprovado')    return g.decisao==='aprovar';
+    if(f==='compromisso') return ['aprovar','segunda_fase','contorno'].includes(g.decisao);
+    if(f==='decidido')    return !!g.decisao && g.decisao!=='recusar';
+    return true;                       // todos os decidíveis
+  });
+}
+const gapsDebito = () => AC_AUTO ? gapsFiltrados() : scoped().filter(g=>ACG[g.uuid_ticket]);
+const debitoHoras = () => gapsDebito().reduce((s,g)=>s+(+g.est||0),0);
+
+function renderAcerto(){
+  if(!PG) pgLoad();
+  const cMod=creditoModulos(), cPers=creditoPers(), credito=cMod+cPers;
+  const debito=debitoHoras(), saldo=credito-debito, r=rate();
+  document.getElementById('bac').textContent=Object.keys(CANC).length;
+
+  // barra de saldo
+  const favor = saldo>=0;
+  document.getElementById('saldoBar').innerHTML=`
+    <div class="sb-cell credito"><div class="l">Crédito — o que sai</div><div class="v">${fmt(credito)}<span> h</span></div>
+      <div class="d">${fmt(cMod)}h módulos + ${fmt(cPers)}h personalização</div></div>
+    <div class="sb-cell debito"><div class="l">Débito — GAPs na conta</div><div class="v">${fmt(debito)}<span> h</span></div>
+      <div class="d">${gapsDebito().length} GAPs ${AC_AUTO?'(automático pelo filtro)':'(marcados)'}</div></div>
+    <div class="sb-cell sb-saldo ${favor?'favor':'contra'}"><div class="l">Saldo do acerto</div>
+      <div class="v">${saldo>0?'+':''}${fmt(saldo)}<span> h</span></div>
+      <div class="rs">${brl(Math.abs(saldo)*r)} ${favor?'a favor do cliente':'a cobrar do cliente'}</div></div>`;
+
+  // 1) módulos
+  const hdr=`<div class="ac-hdr"><div></div><div>Módulo / subitem</div><div class="r">Contratado</div>
+    <div class="r">Cancelado</div><div class="r">Saldo</div><div></div></div>`;
+  let html=hdr;
+  CATALOGO.forEach((m,mi)=>{
+    const modK=kMod(m.modulo), modOn=!!CANC[modK];
+    const canc=canceladoModulo(m), saldoM=m.total-canc;
+    const open=EXPANDED.has(m.modulo);
+    html+=`<div class="ac-row mod ${modOn?'off':''}">
+      <input type="checkbox" class="ac-chk" data-mod="${mi}" ${modOn?'checked':''} title="Cancelar o módulo inteiro">
+      <div class="ac-nome">${m.modulo}</div>
+      <div class="ac-num muted">${fmt(m.total)} h</div>
+      <div><input class="ac-inp" type="number" min="0" step="1" data-modh="${mi}" value="${fmt(canc)}" ${modOn?'':'disabled'}></div>
+      <div class="ac-num ${saldoM<0?'neg':''}">${fmt(saldoM)} h</div>
+      <button class="ac-exp" data-exp="${m.modulo}">${open?'▾':'▸'}</button></div>`;
+    if(open){
+      m.itens.forEach((it,ii)=>{
+        const sk=kSub(m.modulo,it.nome), on=!!CANC[sk];
+        const sc=on?+CANC[sk].horas_canceladas||0:0;
+        html+=`<div class="ac-row sub ${on||modOn?'off':''}">
+          <input type="checkbox" class="ac-chk" data-sub="${mi}:${ii}" ${on?'checked':''} ${modOn?'disabled':''}>
+          <div class="ac-nome">${it.nome}</div>
+          <div class="ac-num muted">${fmt(it.horas)} h</div>
+          <div><input class="ac-inp" type="number" min="0" step="1" data-subh="${mi}:${ii}" value="${fmt(sc)}" ${on&&!modOn?'':'disabled'}></div>
+          <div class="ac-num">${fmt(it.horas-sc)} h</div><div></div></div>`;
+      });
+    }
+  });
+  const totC=CATALOGO.reduce((s,m)=>s+m.total,0);
+  html+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL IMPLANTAÇÃO</div>
+    <div class="ac-num">${fmt(totC)} h</div><div class="ac-num neg" style="text-align:right">${fmt(cMod)} h</div>
+    <div class="ac-num">${fmt(totC-cMod)} h</div><div></div></div>`;
+  document.getElementById('acModulos').innerHTML=html;
+
+  // 2) personalizações
+  let ph=hdr.replace('Módulo / subitem','Grupo de personalização');
+  PG.forEach((g,i)=>{
+    const k=kPers(g.nome), on=!!CANC[k], hc=on?+CANC[k].horas_canceladas||0:0;
+    ph+=`<div class="ac-row ${on?'off':''}">
+      <input type="checkbox" class="ac-chk" data-pers="${i}" ${on?'checked':''}>
+      <div class="ac-nome">${g.nome}</div>
+      <div class="ac-num muted">${fmt(g.prop)} h</div>
+      <div><input class="ac-inp" type="number" min="0" step="1" data-persh="${i}" value="${fmt(hc)}" ${on?'':'disabled'}></div>
+      <div class="ac-num">${fmt((+g.prop||0)-hc)} h</div><div></div></div>`;
+  });
+  ph+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL PERSONALIZAÇÃO</div>
+    <div class="ac-num">${fmt(PG_PROP_TOTAL)} h</div><div class="ac-num neg" style="text-align:right">${fmt(cPers)} h</div>
+    <div class="ac-num">${fmt(PG_PROP_TOTAL-cPers)} h</div><div></div></div>`;
+  document.getElementById('acPers').innerHTML=ph;
+
+  // 3) GAPs
+  const grpBy=document.getElementById('acGapGroup').value;
+  const lista=gapsFiltrados();
+  const groups={};
+  lista.forEach(g=>{const k=(grpBy==='decisao'?(g.decisao?DEC[g.decisao]:'Pendente'):(g[grpBy]||'—'));(groups[k]=groups[k]||[]).push(g);});
+  let gh=`<div class="note" style="margin:0 0 8px">
+    <label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:var(--navy)">
+      <input type="checkbox" class="ac-chk g" id="acAuto" ${AC_AUTO?'checked':''}>
+      Considerar automaticamente todos os GAPs do filtro (${lista.length} itens · ${fmt(lista.reduce((s,g)=>s+(+g.est||0),0))} h)
+    </label> — desmarque para escolher GAP a GAP ou por grupo.</div>`;
+  if(!lista.length) gh+='<div class="empty">Nenhum GAP no filtro atual. Registre decisões na aba “Tomada de decisão”.</div>';
+  Object.keys(groups).sort().forEach(k=>{
+    const arr=groups[k], hs=arr.reduce((s,g)=>s+(+g.est||0),0);
+    const allOn=arr.every(g=>AC_AUTO||ACG[g.uuid_ticket]);
+    gh+=`<div class="ac-gapgrp">
+      <div class="gh"><input type="checkbox" class="ac-chk g" data-grp="${encodeURIComponent(k)}" ${allOn?'checked':''} ${AC_AUTO?'disabled':''}>
+        <div>${k} <span class="tag-mini">${arr.length} GAPs</span></div><div>${fmt(hs)} h</div></div>
+      ${arr.map(g=>{const on=AC_AUTO||!!ACG[g.uuid_ticket];
+        return `<div class="ac-gap ${on?'on':''}">
+          <input type="checkbox" class="ac-chk g" data-gap="${g.uuid_ticket}" ${on?'checked':''} ${AC_AUTO?'disabled':''}>
+          <span class="code">${g.code}</span><span>${g.titulo||''}</span>
+          <span class="pg-dec pg-${g.decisao||'pendente'}">${g.decisao?DEC[g.decisao]:'Pendente'}</span>
+          <span class="h">${fmt(g.est)} h</span></div>`;}).join('')}
+    </div>`;
+  });
+  document.getElementById('acGaps').innerHTML=gh;
+
+  // 4) resumo
+  document.getElementById('acResumo').innerHTML=`<table class="ac-res">
+    <tr><td>Crédito — módulos não implantados</td><td class="cr">${fmt(cMod)} h · ${brl(cMod*r)}</td></tr>
+    <tr><td>Crédito — personalizações canceladas</td><td class="cr">${fmt(cPers)} h · ${brl(cPers*r)}</td></tr>
+    <tr><td><b>Crédito total (o cliente deixa de consumir)</b></td><td class="cr">${fmt(credito)} h · ${brl(credito*r)}</td></tr>
+    <tr><td>Débito — GAPs na conta (${gapsDebito().length} itens)</td><td class="db">− ${fmt(debito)} h · ${brl(debito*r)}</td></tr>
+    <tr class="tot"><td><b>SALDO ${favor?'a favor do cliente':'a cobrar do cliente'}</b></td>
+        <td>${saldo>0?'+':''}${fmt(saldo)} h · ${brl(Math.abs(saldo)*r)}</td></tr>
+  </table>`;
+  bindAcerto();
+}
+
+function bindAcerto(){
+  document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{
+    const m=b.dataset.exp; EXPANDED.has(m)?EXPANDED.delete(m):EXPANDED.add(m); renderAcerto();
+  });
+  document.querySelectorAll('[data-mod]').forEach(c=>c.onchange=async()=>{
+    const m=CATALOGO[+c.dataset.mod];
+    if(await saveCancel('modulo',m.modulo,null,m.total,m.total,c.checked)) renderAcerto();
+  });
+  document.querySelectorAll('[data-modh]').forEach(i=>i.onchange=async()=>{
+    const m=CATALOGO[+i.dataset.modh];
+    if(await saveCancel('modulo',m.modulo,null,m.total,+i.value||0,true)) renderAcerto();
+  });
+  document.querySelectorAll('[data-sub]').forEach(c=>c.onchange=async()=>{
+    const [mi,ii]=c.dataset.sub.split(':').map(Number); const m=CATALOGO[mi], it=m.itens[ii];
+    if(await saveCancel('subitem',m.modulo,it.nome,it.horas,it.horas,c.checked)) renderAcerto();
+  });
+  document.querySelectorAll('[data-subh]').forEach(i=>i.onchange=async()=>{
+    const [mi,ii]=i.dataset.subh.split(':').map(Number); const m=CATALOGO[mi], it=m.itens[ii];
+    if(await saveCancel('subitem',m.modulo,it.nome,it.horas,+i.value||0,true)) renderAcerto();
+  });
+  document.querySelectorAll('[data-pers]').forEach(c=>c.onchange=async()=>{
+    const g=PG[+c.dataset.pers];
+    if(await saveCancel('personalizacao',g.nome,null,+g.prop||0,+g.prop||0,c.checked)) renderAcerto();
+  });
+  document.querySelectorAll('[data-persh]').forEach(i=>i.onchange=async()=>{
+    const g=PG[+i.dataset.persh];
+    if(await saveCancel('personalizacao',g.nome,null,+g.prop||0,+i.value||0,true)) renderAcerto();
+  });
+  const auto=document.getElementById('acAuto');
+  if(auto) auto.onchange=()=>{AC_AUTO=auto.checked;renderAcerto();};
+  document.querySelectorAll('[data-gap]').forEach(c=>c.onchange=async()=>{
+    if(await saveAcertoGap(c.dataset.gap,c.checked)) renderAcerto();
+  });
+  document.querySelectorAll('[data-grp]').forEach(c=>c.onchange=async()=>{
+    const k=decodeURIComponent(c.dataset.grp), grpBy=document.getElementById('acGapGroup').value;
+    const arr=gapsFiltrados().filter(g=>(grpBy==='decisao'?(g.decisao?DEC[g.decisao]:'Pendente'):(g[grpBy]||'—'))===k);
+    for(const g of arr) await saveAcertoGap(g.uuid_ticket,c.checked);
+    renderAcerto();
+  });
+}
+document.getElementById('acRate').oninput=renderAcerto;
+['acGapFilter','acGapGroup'].forEach(id=>document.getElementById(id).onchange=renderAcerto);
+document.getElementById('acSelAll').onclick=async()=>{
+  AC_AUTO=false; for(const g of gapsFiltrados()) await saveAcertoGap(g.uuid_ticket,true); renderAcerto();
+};
+document.getElementById('acSelNone').onclick=async()=>{
+  AC_AUTO=false; for(const u of Object.keys(ACG)) await saveAcertoGap(u,false); renderAcerto();
+};
+document.getElementById('acReset').onclick=async()=>{
+  if(!confirm('Limpar TODOS os cancelamentos e seleções gravados no Supabase?'))return;
+  for(const k of Object.keys(CANC)){const c=CANC[k];await saveCancel(c.tipo,c.modulo,c.item,0,0,false);}
+  for(const u of Object.keys(ACG)) await saveAcertoGap(u,false);
+  renderAcerto();
+};
+document.getElementById('acExport').onclick=()=>{
+  const r=rate(), rows=[['bloco','modulo/grupo','item','contratado_h','cancelado_h','saldo_h']];
+  CATALOGO.forEach(m=>{const c=canceladoModulo(m);if(c>0)rows.push(['modulo',m.modulo,'',m.total,c,m.total-c]);
+    m.itens.forEach(i=>{const k=kSub(m.modulo,i.nome);if(CANC[k])rows.push(['subitem',m.modulo,'"'+i.nome+'"',i.horas,CANC[k].horas_canceladas,i.horas-CANC[k].horas_canceladas]);});});
+  PG.forEach(g=>{const k=kPers(g.nome);if(CANC[k])rows.push(['personalizacao','"'+g.nome+'"','',g.prop,CANC[k].horas_canceladas,(+g.prop||0)-CANC[k].horas_canceladas]);});
+  rows.push([]); rows.push(['GAP (débito)','code','titulo','','horas','']);
+  gapsDebito().forEach(g=>rows.push(['gap',g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"','',g.est,'']));
+  const cr=creditoModulos()+creditoPers(), db=debitoHoras();
+  rows.push([]); rows.push(['RESUMO','credito_h',cr,'debito_h',db,'saldo_h',cr-db]);
+  rows.push(['RESUMO_RS','credito',cr*r,'debito',db*r,'saldo',(cr-db)*r]);
+  const blob=new Blob([rows.map(x=>x.join(';')).join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_DIGITRO.csv';a.click();
+};
+document.getElementById('acExportJson').onclick=()=>{
+  const r=rate(), cr=creditoModulos()+creditoPers(), db=debitoHoras();
+  const out={cliente:'DIGITRO',customer:'000348D0',gerado_em:new Date().toISOString(),valor_hora:r,
+    cancelamentos:Object.values(CANC),
+    gaps_debito:gapsDebito().map(g=>({code:g.code,titulo:g.titulo,horas:+g.est||0,decisao:g.decisao||null})),
+    resumo:{credito_h:cr,debito_h:db,saldo_h:cr-db,credito_rs:cr*r,debito_rs:db*r,saldo_rs:(cr-db)*r}};
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_DIGITRO.json';a.click();
+};
+
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
@@ -622,6 +970,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.p==='geral')renderGeralCharts();
   if(t.dataset.p==='tags')renderTagCharts();
   if(t.dataset.p==='pgrupos')renderPG();
+  if(t.dataset.p==='acerto')renderAcerto();
 });
 document.getElementById('scopeSel').onchange=e=>{
   SCOPE=e.target.value;
@@ -645,8 +994,9 @@ async function loadData(){
   const {data,error}=await sb.from('v_gaps').select('*');
   if(error){ st.className='status err'; st.textContent='erro'; document.getElementById('errMsg').textContent=error.message; document.getElementById('errOverlay').style.display='flex'; return; }
   GAPS=data||[];
+  await loadAcerto();
   st.className='status ok'; st.textContent=GAPS.length+' GAPs ao vivo';
-  renderKpis();renderGeralCharts();renderConflitos();renderNlm();renderDec();renderPG();
+  renderKpis();renderGeralCharts();renderConflitos();renderNlm();renderDec();renderPG();renderAcerto();
 }
 loadData();
 </script>
