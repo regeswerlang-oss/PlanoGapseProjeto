@@ -6,6 +6,7 @@
 <title>Serviço × Comercial — DIGITRO · online</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="catalogo.js"></script>
 <style>
 :root{
@@ -105,6 +106,35 @@ tr.alto td{background:#FCEDEF}
 .nlm-card .ids{margin-bottom:8px}
 .nlm-card p{font-size:12.5px;color:var(--ink)}
 .nlm-src{font-size:11px;color:var(--gray);margin:0 0 14px;padding:9px 13px;background:#E2F5EC;border-radius:9px}
+.rfp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.rfp-cli{font-size:12px;color:var(--gray)}
+.rfp-acts{display:flex;gap:8px}
+.rfp-vazio{padding:26px 22px;background:#fff;border:1px dashed #DCE3E8;border-radius:12px;text-align:center;color:var(--gray)}
+.rfp-vazio b{color:#1C2B36;font-size:14px}
+.rfp-vazio p{font-size:12px;margin:8px auto 0;max-width:560px;line-height:1.6}
+.imp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:12px 0}
+.imp-grid label{font-size:11px;font-weight:700;color:var(--gray);display:block;margin-bottom:4px}
+.imp-grid select{width:100%;padding:8px;border:1px solid #DCE3E8;border-radius:8px;font-size:12px;background:#fff}
+.imp-prev{max-height:230px;overflow:auto;border:1px solid #DCE3E8;border-radius:8px}
+.imp-prev table{width:100%;border-collapse:collapse;font-size:11px}
+.imp-prev th{position:sticky;top:0;background:#F4F7F9;padding:6px 8px;text-align:left;font-size:10px;color:var(--gray)}
+.imp-prev td{padding:6px 8px;border-top:1px solid #EEF2F5}
+.imp-msg{font-size:12px;margin:10px 0;min-height:16px}
+.imp-msg.err{color:#D64550}.imp-msg.ok{color:#1E9E6A}
+.dimp-tot{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 10px}
+.dimp-tot span{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:#EEF2F5;color:var(--gray)}
+.dimp-tot span b{font-weight:800;margin-right:3px}
+.dimp-tot span.novo{background:#DDF3E9;color:#127551}
+.dimp-tot span.alterado{background:#FCEBCF;color:#8A5A00}
+.dimp-tot span.remover{background:#FAD4D8;color:#B0212E}
+.dimp-tot span.problema{background:#FDE7EA;color:#B0212E}
+.dimp-prev-tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.dimp-prev-tag.novo{background:#DDF3E9;color:#127551}
+.dimp-prev-tag.alterado{background:#FCEBCF;color:#8A5A00}
+.dimp-prev-tag.remover{background:#FAD4D8;color:#B0212E}
+.dimp-prev-tag.igual{background:#EEF2F5;color:#7A8894}
+.dimp-prev-tag.erro{background:#FDE7EA;color:#B0212E}
+.imp-prev tr.off td{opacity:.45}
 .dec-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .dec-controls select,.dec-controls input{padding:9px 12px;border:1px solid #DCE3E8;border-radius:9px;font-family:var(--font);font-size:12.5px;background:#fff;color:var(--navy)}
 .dec-controls input{flex:1;min-width:200px}
@@ -485,8 +515,19 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
   </div>
 
   <div class="panel" id="p-conflitos">
-    <p class="note">Requisitos respondidos na RFP como “Atende = Sim / Escopo” que viraram GAP. <b>Est. (h)</b> = soma das estimativas dos GAPs da linha; clique em <b>▸ n GAPs</b> para abrir o detalhe item a item. Clique em <b>NLM</b> para a nota comercial. Linhas vermelhas = grau Alto.</p>
-    <div class="card" style="padding:0;overflow:hidden">
+    <p class="note">Requisitos respondidos na RFP como “Atende = Sim / Escopo” que viraram GAP, <b>do cliente selecionado no topo</b>. <b>Est. (h)</b> = soma das estimativas dos GAPs da linha; clique em <b>▸ n GAPs</b> para abrir o detalhe item a item. Clique em <b>NLM</b> para a nota comercial. Linhas vermelhas = grau Alto.</p>
+    <div class="rfp-bar">
+      <span class="rfp-cli">RFP de <b id="rfpCliNome">—</b></span>
+      <div class="rfp-acts">
+        <button class="btn-ghost" type="button" onclick="rfpModelo()">↓ Modelo .xlsx</button>
+        <button class="btn-ghost" type="button" id="rfpImpBtn" onclick="abrirImportRfp()">⇪ Importar planilha</button>
+      </div>
+    </div>
+    <div id="confVazio" class="rfp-vazio" style="display:none">
+      <b>Nenhuma RFP cadastrada para este cliente.</b>
+      <p>A curadoria RFP × GAP é por cliente. Importe a planilha da RFP de <span id="rfpVazioCli">—</span> para preencher esta aba — use o botão <b>Modelo .xlsx</b> para o formato esperado.</p>
+    </div>
+    <div class="card" id="confCard" style="padding:0;overflow:hidden">
       <table id="tConf"><thead><tr>
         <th>GAP(s)</th><th>Funcionalidade</th><th>Módulo</th><th>Resp. RFP</th><th>Observação RFP</th><th style="text-align:right">Est. (h)</th><th>Grau</th><th>NLM</th>
       </tr></thead><tbody></tbody>
@@ -495,7 +536,7 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
   </div>
 
   <div class="panel" id="p-nlm">
-    <p class="nlm-src">Fonte: NotebookLM “Projeto Digitro” — 58 fontes (RFP, proposta, atas, conferência de GAPs). Resumos por grupo de conflito (no fluxo real, gravados no ticket com prefixo <b>NOTEBOOKLM:</b>).</p>
+    <p class="nlm-src" id="nlmSrc"></p>
     <div id="nlmCards"></div>
   </div>
 
@@ -592,6 +633,7 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
       <input id="decSearch" placeholder="Buscar por id, título, produto, etapa…">
       <button class="btn-ghost" id="btnReload">↻ Recarregar</button>
       <button class="btn-ghost" id="btnExport">Exportar CSV</button>
+      <button class="btn-ghost" id="btnImportDec">⬆ Importar decisões (JSON)</button>
     </div>
     <div id="decList"></div>
   </div>
@@ -645,6 +687,54 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
   </div>
 </div></div>
 
+<div class="overlay" id="impOverlay" style="display:none"><div class="conta-card" style="max-width:700px">
+  <h3>Importar RFP da planilha</h3>
+  <div class="quem" id="impQuem"></div>
+  <label for="impFile">Arquivo (.xlsx, .xls, .csv)</label>
+  <input type="file" id="impFile" accept=".xlsx,.xls,.csv" style="padding:8px">
+  <div id="impCfg" style="display:none">
+    <label for="impAba" style="margin-top:14px">Aba da planilha</label>
+    <select id="impAba" style="width:100%;padding:9px 11px;border:1px solid #DCE3E8;border-radius:9px;font-size:13px"></select>
+    <div class="imp-grid" id="impMap"></div>
+    <label>Prévia (primeiras 8 linhas do que será gravado)</label>
+    <div class="imp-prev" id="impPrev"></div>
+    <label style="margin-top:12px;text-transform:none;letter-spacing:0;font-weight:600;color:#1C2B36">
+      <input type="checkbox" id="impSubst" checked style="width:auto;margin-right:6px">
+      Substituir a RFP atual deste cliente (desmarque para acrescentar)
+    </label>
+  </div>
+  <div class="imp-msg" id="impMsg"></div>
+  <div class="conta-acts">
+    <button class="btn-ghost" type="button" onclick="fecharImportRfp()">Cancelar</button>
+    <button id="impSalvar" type="button" onclick="salvarImportRfp()" disabled>Gravar RFP</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="dimpOverlay" style="display:none"><div class="conta-card" style="max-width:820px">
+  <h3>Importar decisões do cliente (JSON)</h3>
+  <div class="quem" id="dimpQuem"></div>
+  <p class="note" style="margin:6px 0 12px">
+    O arquivo casa pelo <b>código do GAP</b>. Só grava depois que você conferir a prévia.
+    <button class="btn-ghost" type="button" onclick="dimpModelo()" style="padding:4px 9px;font-size:11px;margin-left:6px">⬇ Baixar modelo</button>
+  </p>
+  <label for="dimpFile">Arquivo (.json)</label>
+  <input type="file" id="dimpFile" accept=".json,application/json" style="padding:8px">
+  <div id="dimpCfg" style="display:none">
+    <label style="margin-top:14px">Conferência — o que será gravado</label>
+    <div class="dimp-tot" id="dimpTot"></div>
+    <div class="imp-prev" id="dimpPrev" style="max-height:280px"></div>
+    <label style="margin-top:12px;text-transform:none;letter-spacing:0;font-weight:600;color:#1C2B36">
+      <input type="checkbox" id="dimpSoNovos" style="width:auto;margin-right:6px">
+      Não alterar decisões já tomadas (importa apenas onde ainda não há decisão)
+    </label>
+  </div>
+  <div class="imp-msg" id="dimpMsg"></div>
+  <div class="conta-acts">
+    <button class="btn-ghost" type="button" onclick="fecharImportDec()">Cancelar</button>
+    <button id="dimpSalvar" type="button" onclick="aplicarImportDec()" disabled>Gravar decisões</button>
+  </div>
+</div></div>
+
 </div><!-- /appShell -->
 
 <script>
@@ -665,41 +755,33 @@ let ME = null;
 const CLIENTES = {};                       // customer -> nome
 const nomeCliente = c => CLIENTES[c] || c;
 
-// ===== Curadoria estática: conflitos RFP × GAP + notas NotebookLM (por código de ticket) =====
-const CONFLITOS = [
-  {ids:['00012230'],titulo:'Etiquetas - Código de Barras (EAN)',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
-  {ids:['00012226'],titulo:'Etiquetas - Localização',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
-  {ids:['00011332'],titulo:'Etiquetas - ANATEL',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'“Através de personalização do modelo específico.”',grupo:'etiquetas'},
-  {ids:['00012231'],titulo:'Etiquetas - Rastreabilidade',modulo:'Estoque',grau:'Alto',rfp:'Sim / Nativo',obs:'Rastreabilidade personalizável de materiais.',grupo:'etiquetas'},
-  {ids:['00011561'],titulo:'Envio de documentos anexados por e-mail ao faturar',modulo:'Faturamento',grau:'Alto',rfp:'Sim / Nativo (sem ressalva)',obs:'Disparo automático de XML/DANFE/boleto + anexos (CNDs).',grupo:'envio_email'},
-  {ids:['00013021'],titulo:'Comissão - Relatório / baixa com NF',modulo:'Financeiro',grau:'Alto',rfp:'Sim / Nativo',obs:'“Regras de comissionamento devem ser personalizadas.”',grupo:'comissao'},
-  {ids:['00013007'],titulo:'Política de precificação personalizada',modulo:'Comercial',grau:'Alto',rfp:'Sim / Nativo',obs:'“A informação de precificação e custos deverá vir do ERP.”',grupo:'precificacao'},
-  {ids:['00014126'],titulo:'Registrar o histórico por cliente',modulo:'Comercial',grau:'Alto',rfp:'Sim / Nativo',obs:'Histórico desde 1ª contratação até renovações.',grupo:'historico'},
-  {ids:['00012228','00012235','00012369'],titulo:'Etiquetas - Esp. Técnicas / Minuta / RAC',modulo:'Estoque',grau:'Médio',rfp:'Sim / Nativo',obs:'Subtipos não citados literalmente na RFP.',grupo:'etiquetas'},
-  {ids:['00013004'],titulo:'Comissão multinível',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'“Regras de comissionamento devem ser personalizadas.”',grupo:'comissao'},
-  {ids:['00013005'],titulo:'Acompanhamento de metas comerciais no contrato',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'Metas/comissões por etapa do funil.',grupo:'comissao'},
-  {ids:['00013006'],titulo:'Dashboard comercial',modulo:'Faturamento',grau:'Médio',rfp:'Sim / Nativo',obs:'Dashboards de performance do funil.',grupo:'comercial'},
-  {ids:['00010891'],titulo:'Fluxo de aprovação - borderô de pagamento',modulo:'Financeiro',grau:'Médio',rfp:'Sim / Nativo',obs:'“Personalização via Workflow.”',grupo:'workflow'},
-  {ids:['00014127'],titulo:'Carteira Cliente / Audit Trail',modulo:'Comercial',grau:'Médio',rfp:'Sim / Nativo',obs:'Controle de histórico com data e responsável.',grupo:'historico'},
-  {ids:['00011811'],titulo:'Classificação de risco e análise de crédito',modulo:'Financeiro',grau:'Médio',rfp:'Sim / Nativo',obs:'“Via integração c/ Protheus.”',grupo:'credito'},
-  {ids:['00012992'],titulo:'Classificação de fornecedores',modulo:'Compras',grau:'Médio',rfp:'Sim / Nativo',obs:'Segmentação personalizável de clientes/fornecedores.',grupo:'cadastros'},
-  {ids:['00012993'],titulo:'Relatório PC em aberto com prazo de entrega',modulo:'Compras',grau:'Médio',rfp:'Sim / Nativo',obs:'Via TOTVS SmartView.',grupo:'compras'},
-  {ids:['00011991'],titulo:'Saldo/notas em poder de terceiros',modulo:'Fiscal',grau:'Médio',rfp:'Sim / Nativo',obs:'Controle de saldo em posse de terceiros.',grupo:'estoque'},
-  {ids:['00010911','00012808','00012810','00013512'],titulo:'Servidor/Gerador/Gestão de licenças',modulo:'Geral',grau:'Médio',rfp:'Sim / Nativo',obs:'Integração c/ servidor de licenças está Fora do Escopo (API).',grupo:'licencas'},
-  {ids:['00010910','00013391','00014128','00014129','00014130','00014633'],titulo:'Integração suporte / Field Service / Controle de atendimentos',modulo:'Gestão de Serviços',grau:'Médio/Alto',rfp:'Sim / Nativo',obs:'TOTVS Field Service nativo; integrações externas = Médio.',grupo:'suporte'},
-  {ids:['00012999','00013000','00013001','00013002'],titulo:'Amarrações Plano Contas × CC × Item Contábil + Validadores',modulo:'Contabilidade',grau:'Médio',rfp:'Sim / Nativo',obs:'Gestão de múltiplas UN, CC e contas.',grupo:'contabil'},
-  {ids:['00014087'],titulo:'Campos customizados proposta × contrato',modulo:'Comercial',grau:'Médio',rfp:'Sim / Nativo',obs:'“Avaliar extensão da integração padrão.”',grupo:'contratos'},
-  {ids:['00014088'],titulo:'Integração TCRM × Contratos',modulo:'Comercial',grau:'Médio',rfp:'Sim / Integrado Protheus',obs:'Gerar contrato após aceite da proposta.',grupo:'contratos'},
-];
-const NLM_NOTAS = {
-  etiquetas:'Proposta previu apenas “Impressão de Etiquetas (1 Modelo)” no módulo ACD. Em reunião, a TOTVS esclareceu que NÃO parametrizará todos os modelos atuais — a proposta contempla UMA etiqueta personalizada; modelos adicionais são itens extras de projeto. Horas diluídas no bloco Personalizações (1.006h / R$ 221.320,00).',
-  comissao:'Vinicius (TOTVS) admitiu: “100% das vezes que entra comissionamento, parte para desenvolvimento”. Regras da Dígitro: liberação só após recebimento financeiro; comissão multinível/split (ex. 5%/3%/1% na mesma venda); validação de margem mínima (ex. 45%). Protheus suporta até 5 representantes por contrato; regras específicas foram para a fila de GAP. Recomendado MIT de mudança de escopo.',
-  precificacao:'A Dígitro busca dar autonomia ao vendedor para obter preço instantâneo (~80% dos casos) sem suporte interno. TOTVS sugeriu transformar variações (prazos 12/24/36, faixas de volume) em Part Numbers (SKUs), tabelas de preço por UF, faixas de desconto e validade; apresentou o módulo Formação de Preço para eliminar planilhas externas.',
-  envio_email:'Envio manual de CNDs/comprovantes a órgãos públicos é gargalo operacional (“processo desgraçado” no Datasul). TOTVS sugeriu Banco de Conhecimento para centralizar documentos por cliente/contrato; a automação de anexos variáveis por cliente exige personalização. Proposta lista “Envio do boleto com a NFe” no bloco de Personalizações.',
-  historico:'Histórico do cliente (1ª contratação → ampliações/renovações) e Audit Trail. Tratado em reunião como necessidade de registro contínuo; parte recai sobre desenvolvimento (Alto) e parte sobre controle de alterações (Médio).',
-};
-const CONF_BY_CODE = {}; CONFLITOS.forEach(c=>c.ids.forEach(id=>CONF_BY_CODE[id]=c.grau));
-const IDS_BY_GRUPO = {}; CONFLITOS.forEach(c=>{(IDS_BY_GRUPO[c.grupo]=IDS_BY_GRUPO[c.grupo]||[]).push(...c.ids);});
+// ===== Curadoria RFP × GAP — POR CLIENTE, vinda do Supabase =====
+// Antes isto era uma lista fixa da DIGITRO no código, por isso o seletor de cliente
+// não filtrava nada. Agora mora em svc_comercial.rfp_conflitos / rfp_notas / rfp_meta
+// e é recarregada a cada troca de cliente (RPC rfp_carregar, recortada por pode_ver).
+let CONFLITOS   = [];   // [{ids:[],titulo,modulo,grau,rfp,obs,grupo}]
+let NLM_NOTAS   = {};   // grupo -> nota
+let RFP_FONTE   = '';   // texto da fonte (aba NotebookLM)
+let CONF_BY_CODE = {};  // code do ticket -> grau
+let IDS_BY_GRUPO = {};  // grupo -> [codes]
+
+function reindexRfp(){
+  CONF_BY_CODE = {}; IDS_BY_GRUPO = {};
+  CONFLITOS.forEach(c=>{
+    c.ids = Array.isArray(c.ids) ? c.ids : [];
+    c.ids.forEach(id => CONF_BY_CODE[id] = c.grau);
+    if(c.grupo) (IDS_BY_GRUPO[c.grupo] = IDS_BY_GRUPO[c.grupo] || []).push(...c.ids);
+  });
+}
+
+async function rfpLoad(){
+  const {data,error} = await sb.rpc('rfp_carregar',{p_customer:CUSTOMER});
+  if(error){ console.warn('rfp_carregar:',error.message); CONFLITOS=[]; NLM_NOTAS={}; RFP_FONTE=''; reindexRfp(); return; }
+  CONFLITOS = (data && data.conflitos) || [];
+  NLM_NOTAS = (data && data.notas) || {};
+  RFP_FONTE = (data && data.fonte) || '';
+  reindexRfp();
+}
 
 // ===== estado =====
 let GAPS = [];
@@ -815,6 +897,12 @@ function confEst(c,BY){ return c.ids.reduce((s,id)=>s+(+((BY[id]||{}).est)||0),0
 
 function renderConflitos(){
   document.getElementById('bconf').textContent=CONFLITOS.length;
+  document.getElementById('rfpCliNome').textContent=nomeCliente(CUSTOMER);
+  document.getElementById('rfpVazioCli').textContent=nomeCliente(CUSTOMER);
+  const vazio=!CONFLITOS.length;
+  document.getElementById('confVazio').style.display = vazio?'block':'none';
+  document.getElementById('confCard').style.display  = vazio?'none':'block';
+  if(vazio){ document.querySelector('#tConf tbody').innerHTML=''; return; }
   const BY=gapByCode();
   const tb=document.querySelector('#tConf tbody');
   tb.innerHTML=CONFLITOS.map((c,i)=>{
@@ -863,6 +951,11 @@ function renderConflitos(){
 }
 function renderNlm(){
   const titles={etiquetas:'Etiquetas (código de barras, localização, ANATEL, rastreabilidade)',comissao:'Comissão — relatório, baixa com NF, multinível, metas',precificacao:'Política de precificação personalizada',envio_email:'Envio de documentos anexados por e-mail ao faturar',historico:'Registrar histórico por cliente'};
+  const src=document.getElementById('nlmSrc');
+  src.innerHTML = RFP_FONTE
+    ? esc(RFP_FONTE)+' Resumos por grupo; no fluxo real, gravados no ticket com prefixo <b>NOTEBOOKLM:</b>.'
+    : 'Sem notas de NotebookLM cadastradas para <b>'+esc(nomeCliente(CUSTOMER))+'</b>.';
+  if(!Object.keys(NLM_NOTAS).length){ document.getElementById('nlmCards').innerHTML=''; return; }
   document.getElementById('nlmCards').innerHTML=Object.keys(NLM_NOTAS).map(g=>{
     const ids=(IDS_BY_GRUPO[g]||[]).map(x=>`<span class="code">${x}</span>`).join('');
     return `<div class="nlm-card"><h4>${titles[g]||g}</h4><div class="ids">${ids}</div><p>${NLM_NOTAS[g]}</p></div>`;
@@ -1443,12 +1536,331 @@ document.getElementById('btnExport').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='decisoes_servico_comercial_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.csv';a.click();
 };
 
+// ===== Importação da RFP a partir de planilha Excel/CSV =====
+// Colunas esperadas (cabeçalho na 1ª linha). O mapeamento é automático por nome
+// e ajustável nos seletores do modal.
+const RFP_CAMPOS = [
+  ['ids',    'GAP(s) — códigos separados por vírgula', true],
+  ['titulo', 'Funcionalidade / Requisito',             true],
+  ['modulo', 'Módulo',                                 false],
+  ['rfp',    'Resp. RFP',                              false],
+  ['obs',    'Observação RFP',                         false],
+  ['grau',   'Grau (Alto / Médio / Médio-Alto)',       false],
+  ['grupo',  'Grupo (agrupa a nota NotebookLM)',       false],
+];
+const RFP_SINON = {
+  ids:['gap','gaps','gap(s)','codigo','código','codigos','códigos','ticket','tickets','task','tasks'],
+  titulo:['funcionalidade','requisito','titulo','título','descricao','descrição','item'],
+  modulo:['modulo','módulo','area','área'],
+  rfp:['resp. rfp','resp rfp','resposta','resposta rfp','atende','aderencia','aderência'],
+  obs:['observacao rfp','observação rfp','observacao','observação','obs','ressalva','comentario','comentário'],
+  grau:['grau','criticidade','risco','severidade'],
+  grupo:['grupo','tema','agrupamento','conflito'],
+};
+let IMP_WB=null, IMP_ROWS=[], IMP_COLS=[];
+
+const norm = t => String(t||'').trim().toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const esc  = t => String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function abrirImportRfp(){
+  if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
+  IMP_WB=null; IMP_ROWS=[]; IMP_COLS=[];
+  document.getElementById('impQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
+  document.getElementById('impFile').value='';
+  document.getElementById('impCfg').style.display='none';
+  document.getElementById('impSalvar').disabled=true;
+  impMsg('');
+  document.getElementById('impOverlay').style.display='flex';
+}
+function fecharImportRfp(){ document.getElementById('impOverlay').style.display='none'; }
+function impMsg(t,cls){ const e=document.getElementById('impMsg'); e.textContent=t||''; e.className='imp-msg'+(cls?' '+cls:''); }
+
+document.getElementById('impFile').onchange = async ev => {
+  const f=ev.target.files && ev.target.files[0]; if(!f) return;
+  try{
+    IMP_WB = XLSX.read(await f.arrayBuffer(), {type:'array'});
+  }catch(e){ impMsg('Não consegui ler o arquivo: '+e.message,'err'); return; }
+  const sel=document.getElementById('impAba');
+  sel.innerHTML=IMP_WB.SheetNames.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  sel.onchange=impCarregarAba;
+  document.getElementById('impCfg').style.display='block';
+  impCarregarAba();
+};
+
+function impCarregarAba(){
+  const nome=document.getElementById('impAba').value;
+  IMP_ROWS = XLSX.utils.sheet_to_json(IMP_WB.Sheets[nome], {defval:'', raw:false});
+  IMP_COLS = IMP_ROWS.length ? Object.keys(IMP_ROWS[0]) : [];
+  if(!IMP_ROWS.length){ impMsg('A aba "'+nome+'" está vazia.','err'); document.getElementById('impMap').innerHTML=''; document.getElementById('impPrev').innerHTML=''; document.getElementById('impSalvar').disabled=true; return; }
+  // mapeamento automático por nome de coluna
+  document.getElementById('impMap').innerHTML = RFP_CAMPOS.map(([k,rot,obrig])=>{
+    const alvo = IMP_COLS.find(c => norm(c)===norm(rot)) ||
+                 IMP_COLS.find(c => (RFP_SINON[k]||[]).some(sn => norm(c)===norm(sn))) ||
+                 IMP_COLS.find(c => (RFP_SINON[k]||[]).some(sn => norm(c).includes(norm(sn)))) || '';
+    const opts = ['<option value="">— ignorar —</option>']
+      .concat(IMP_COLS.map(c=>`<option value="${esc(c)}" ${c===alvo?'selected':''}>${esc(c)}</option>`)).join('');
+    return `<div><label>${esc(rot)}${obrig?' *':''}</label><select data-k="${k}" onchange="impPreview()">${opts}</select></div>`;
+  }).join('');
+  impPreview();
+}
+
+function impMapAtual(){
+  const m={}; document.querySelectorAll('#impMap select').forEach(s=>{ if(s.value) m[s.dataset.k]=s.value; });
+  return m;
+}
+// Converte as linhas da planilha no formato que a RPC espera
+function impLinhas(){
+  const m=impMapAtual();
+  return IMP_ROWS.map(r=>({
+    ids: String(m.ids?r[m.ids]:'').split(/[,;\/\n]+/).map(x=>x.trim()).filter(Boolean),
+    titulo:(m.titulo?String(r[m.titulo]):'').trim(),
+    modulo:(m.modulo?String(r[m.modulo]):'').trim(),
+    rfp:(m.rfp?String(r[m.rfp]):'').trim(),
+    obs:(m.obs?String(r[m.obs]):'').trim(),
+    grau:(m.grau?String(r[m.grau]):'').trim(),
+    grupo:(m.grupo?String(r[m.grupo]):'').trim(),
+  })).filter(l=>l.titulo);
+}
+
+function impPreview(){
+  const m=impMapAtual();
+  const falta=RFP_CAMPOS.filter(([k,,ob])=>ob&&!m[k]).map(([,rot])=>rot);
+  const linhas=impLinhas();
+  document.getElementById('impPrev').innerHTML =
+    '<table><thead><tr><th>GAP(s)</th><th>Funcionalidade</th><th>Módulo</th><th>Resp. RFP</th><th>Grau</th><th>Grupo</th></tr></thead><tbody>'
+    + linhas.slice(0,8).map(l=>`<tr><td>${esc(l.ids.join(', '))||'—'}</td><td>${esc(l.titulo)}</td><td>${esc(l.modulo)||'—'}</td><td>${esc(l.rfp)||'—'}</td><td>${esc(l.grau)||'—'}</td><td>${esc(l.grupo)||'—'}</td></tr>`).join('')
+    + '</tbody></table>';
+  const ok = !falta.length && linhas.length>0;
+  document.getElementById('impSalvar').disabled = !ok;
+  if(falta.length)      impMsg('Faltam colunas obrigatórias: '+falta.join(', '),'err');
+  else if(!linhas.length) impMsg('Nenhuma linha com Funcionalidade preenchida.','err');
+  else {
+    const semGap = linhas.filter(l=>!l.ids.length).length;
+    impMsg(linhas.length+' linha(s) prontas para gravar em '+nomeCliente(CUSTOMER)
+      + (semGap?' · '+semGap+' sem código de GAP (entram sem estimativa)':''), 'ok');
+  }
+}
+
+async function salvarImportRfp(){
+  const btn=document.getElementById('impSalvar'); const linhas=impLinhas();
+  const subst=document.getElementById('impSubst').checked;
+  if(subst && !confirm('Isto substitui a RFP atual de '+nomeCliente(CUSTOMER)+' por '+linhas.length+' linha(s). Confirma?')) return;
+  btn.disabled=true; impMsg('Gravando…');
+  const {data,error}=await sb.rpc('rfp_importar',{
+    p_customer:CUSTOMER, p_linhas:linhas,
+    p_fonte:'Importado de planilha por '+(ME?.email||'?')+' em '+new Date().toLocaleString('pt-BR')+'.',
+    p_substituir:subst});
+  if(error){ impMsg('Erro ao gravar: '+error.message,'err'); btn.disabled=false; return; }
+  impMsg((data?.inseridos ?? linhas.length)+' linha(s) gravadas.','ok');
+  await rfpLoad(); renderConflitos(); renderNlm(); renderDec();
+  setTimeout(fecharImportRfp, 900);
+}
+
+// Modelo .xlsx com o layout esperado
+function rfpModelo(){
+  const cab=RFP_CAMPOS.map(([,rot])=>rot);
+  const ex=[
+    ['00012230, 00012226','Etiquetas - Código de Barras (EAN)','Estoque','Sim / Nativo','“Através de personalização do modelo específico.”','Alto','etiquetas'],
+    ['00013021','Comissão - Relatório / baixa com NF','Financeiro','Sim / Nativo','Regras de comissionamento devem ser personalizadas.','Alto','comissao'],
+    ['','Requisito sem GAP aberto ainda','Comercial','Sim / Escopo','Confirmar na conferência.','Médio','comercial'],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet([cab,...ex]);
+  ws['!cols']=[{wch:28},{wch:44},{wch:16},{wch:22},{wch:52},{wch:12},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'RFP');
+  XLSX.writeFile(wb,'modelo_rfp_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.xlsx');
+}
+
+// ===== Importar decisões do cliente a partir de um JSON externo =====
+// Casa pelo CÓDIGO do GAP (aceita também uuid_ticket). Nada é gravado antes da
+// conferência: o modal monta o diff contra o que já está em cockpit.decisoes e
+// só então chama svc_comercial.set_decisao item a item.
+//
+// Formato aceito (array na raiz, ou dentro de {itens|decisoes|gaps}):
+//   [{"code":"00010911","decisao":"aprovado","estimativa":40,"observacao":"..."}]
+// Campos e valores são tolerantes a sinônimos — ver DIMP_CAMPO / DEC_ALIAS.
+
+const DIMP_CAMPO = {
+  code:      ['code','codigo','código','id','gap','ticket','task','numero','número','id_ticket'],
+  uuid:      ['uuid','uuid_ticket','uuidticket'],
+  decisao:   ['decisao','decisão','decision','status','resultado','deliberacao','deliberação'],
+  estimativa:['estimativa','horas','h','est','horas_estimadas','esforco','esforço','time_estimate'],
+  observacao:['observacao','observação','obs','justificativa','nota','comentario','comentário','motivo'],
+};
+// Tudo que o cliente possa escrever → enum cockpit.decisao_tipo
+const DEC_ALIAS = {
+  aprovar:      ['aprovar','aprovado','aprovada','aprova','ok','sim','aceito','aceita','approve','approved','manter'],
+  segunda_fase: ['segunda_fase','segunda fase','2 fase','2a fase','2ª fase','2fase','fase 2','fase2','2f','postergar','adiar','proxima fase','próxima fase','phase 2'],
+  contorno:     ['contorno','contornar','workaround','paliativo','solucao de contorno','solução de contorno'],
+  recusar:      ['recusar','recusado','recusada','recusa','nao','não','declinado','declinar','rejeitado','rejeitar','reject','rejected','negado','fora','remover do escopo'],
+  pendente:     ['pendente','','-','—','sem decisao','sem decisão','indefinido','em aberto','aberto','null','none','n/a','na'],
+};
+const DEC_DE_ALIAS = (()=>{ const m={}; for(const[k,vs]of Object.entries(DEC_ALIAS)) vs.forEach(v=>m[norm(v)]=k); return m; })();
+
+let DIMP=[];   // linhas já diferenciadas contra o estado atual
+
+function abrirImportDec(){
+  if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
+  DIMP=[];
+  document.getElementById('dimpQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
+  document.getElementById('dimpFile').value='';
+  document.getElementById('dimpCfg').style.display='none';
+  document.getElementById('dimpSalvar').disabled=true;
+  document.getElementById('dimpSoNovos').checked=false;
+  dimpMsg('');
+  document.getElementById('dimpOverlay').style.display='flex';
+}
+function fecharImportDec(){ document.getElementById('dimpOverlay').style.display='none'; }
+function dimpMsg(t,cls){ const e=document.getElementById('dimpMsg'); e.textContent=t||''; e.className='imp-msg'+(cls?' '+cls:''); }
+
+// pega o 1º campo do objeto que casa com algum sinônimo
+function dimpGet(o,chaves){
+  for(const k of Object.keys(o)) if(chaves.includes(norm(k))) return o[k];
+  return undefined;
+}
+const dimpNum = v => { if(v==null||v==='')return null; const n=parseFloat(String(v).replace(',','.').replace(/[^\d.-]/g,'')); return isFinite(n)?n:null; };
+
+document.getElementById('dimpFile').onchange = async ev => {
+  const f=ev.target.files && ev.target.files[0]; if(!f) return;
+  let raw;
+  try{ raw=JSON.parse(await f.text()); }
+  catch(e){ dimpMsg('Não consegui ler o JSON: '+e.message,'err'); document.getElementById('dimpCfg').style.display='none'; document.getElementById('dimpSalvar').disabled=true; return; }
+  const arr = Array.isArray(raw) ? raw
+            : (raw && (raw.itens||raw.decisoes||raw.gaps||raw.items||raw.data));
+  if(!Array.isArray(arr)){ dimpMsg('O JSON precisa ser uma lista de itens (ou um objeto com a lista em "itens"/"decisoes").','err'); return; }
+  dimpDiff(arr);
+  document.getElementById('dimpCfg').style.display='block';
+  dimpPreview();
+};
+
+// Monta o diff: para cada linha do arquivo, o que muda no banco
+function dimpDiff(arr){
+  const BY=gapByCode(), BYU={}; GAPS.forEach(g=>BYU[g.uuid_ticket]=g);
+  const vistos=new Set();
+  DIMP = arr.map((o,i)=>{
+    const linha=i+1;
+    if(!o||typeof o!=='object') return {linha,acao:'erro',motivo:'linha não é um objeto'};
+    const code=String(dimpGet(o,DIMP_CAMPO.code)??'').trim();
+    const uuid=String(dimpGet(o,DIMP_CAMPO.uuid)??'').trim();
+    const g = uuid ? BYU[uuid] : (code ? (BY[code] || BY[code.padStart(8,'0')]) : null);
+    const rawDec=dimpGet(o,DIMP_CAMPO.decisao);
+    const base={linha,code:code||uuid||'—',titulo:g?.titulo||'',novaObs:(dimpGet(o,DIMP_CAMPO.observacao)??null),novaEst:dimpNum(dimpGet(o,DIMP_CAMPO.estimativa))};
+
+    if(!g)                 return {...base,acao:'erro',motivo:(code||uuid)?'não existe no painel deste cliente':'sem código de GAP'};
+    if(vistos.has(g.uuid_ticket)) return {...base,acao:'erro',motivo:'código repetido no arquivo'};
+    vistos.add(g.uuid_ticket);
+    if(g.fechado)          return {...base,acao:'erro',motivo:'item '+(g.status_tasks||'fechado')+' — não se decide item fechado'};
+    if(rawDec===undefined) return {...base,acao:'erro',motivo:'sem o campo "decisao"'};
+
+    const nova = DEC_DE_ALIAS[norm(rawDec)];
+    if(nova===undefined)   return {...base,acao:'erro',motivo:'decisão "'+rawDec+'" não reconhecida'};
+
+    const alvo = nova==='pendente' ? null : nova;
+    const atual = g.decisao || null;
+    const obsMuda = base.novaObs!=null && String(base.novaObs)!==String(g.dec_observacao??'');
+    const estMuda = base.novaEst!=null && base.novaEst!==(g.dec_estimativa==null?null:+g.dec_estimativa);
+    let acao;
+    if(alvo===null)                       acao = atual ? 'remover' : 'igual';
+    else if(!atual)                       acao = 'novo';
+    else if(atual!==alvo)                 acao = 'alterado';
+    else                                  acao = (obsMuda||estMuda) ? 'alterado' : 'igual';
+    return {...base,uuid:g.uuid_ticket,g,atual,alvo,acao,titulo:g.titulo||''};
+  });
+}
+
+function dimpAplicaveis(){
+  const soNovos=document.getElementById('dimpSoNovos').checked;
+  return DIMP.filter(l=>['novo','alterado','remover'].includes(l.acao) && !(soNovos && l.acao!=='novo'));
+}
+
+function dimpPreview(){
+  const soNovos=document.getElementById('dimpSoNovos').checked;
+  const n=a=>DIMP.filter(l=>l.acao===a).length;
+  const aplic=dimpAplicaveis();
+  document.getElementById('dimpTot').innerHTML=
+     `<span class="novo"><b>${n('novo')}</b>novos</span>`
+    +`<span class="alterado"><b>${n('alterado')}</b>alterados</span>`
+    +`<span class="remover"><b>${n('remover')}</b>a limpar</span>`
+    +`<span><b>${n('igual')}</b>sem mudança</span>`
+    +(n('erro')?`<span class="problema"><b>${n('erro')}</b>com problema</span>`:'');
+  const rot=d=>d?DEC[d]:'—';
+  const ORD={erro:0,alterado:1,remover:2,novo:3,igual:4};
+  const linhas=[...DIMP].sort((a,b)=>(ORD[a.acao]-ORD[b.acao])||(a.linha-b.linha));
+  document.getElementById('dimpPrev').innerHTML=
+    '<table><thead><tr><th>#</th><th>GAP</th><th>Item</th><th>Atual</th><th></th><th>Nova</th><th>Est.</th><th>Ação</th></tr></thead><tbody>'
+    + linhas.map(l=>{
+        const pulado = soNovos && l.acao==='alterado';
+        const tag = l.acao==='erro' ? `<span class="dimp-prev-tag erro" title="${esc(l.motivo)}">erro</span>`
+                  : pulado ? `<span class="dimp-prev-tag igual">pulado</span>`
+                  : `<span class="dimp-prev-tag ${l.acao}">${l.acao}</span>`;
+        const nova = l.acao==='erro' ? `<span style="color:#B0212E">${esc(l.motivo)}</span>` : (l.alvo?esc(rot(l.alvo)):'— limpar —');
+        return `<tr class="${l.acao==='igual'||pulado||l.acao==='erro'?'off':''}">`
+          +`<td style="color:#9AA3B5">${l.linha}</td>`
+          +`<td><span class="code">${esc(l.code)}</span></td>`
+          +`<td>${esc((l.titulo||'').slice(0,52))||'—'}</td>`
+          +`<td>${l.acao==='erro'?'—':esc(rot(l.atual))}</td>`
+          +`<td style="color:#9AA3B5">${l.acao==='erro'?'':'→'}</td>`
+          +`<td><b>${nova}</b></td>`
+          +`<td>${l.novaEst!=null?fmt(l.novaEst)+' h':'—'}</td>`
+          +`<td>${tag}</td></tr>`;
+      }).join('')
+    + '</tbody></table>';
+  document.getElementById('dimpSalvar').disabled = !aplic.length;
+  document.getElementById('dimpSalvar').textContent = aplic.length?('Gravar '+aplic.length+' decisão(ões)'):'Gravar decisões';
+  if(!DIMP.length)        dimpMsg('O arquivo não tem itens.','err');
+  else if(!aplic.length)  dimpMsg(n('erro')?'Nada a gravar — reveja os itens com problema acima.':'Nada a gravar: o arquivo já reflete o que está no painel.', n('erro')?'err':'ok');
+  else                    dimpMsg(aplic.length+' item(ns) serão gravados em '+nomeCliente(CUSTOMER)+'.'+(n('erro')?' Os '+n('erro')+' com problema são ignorados.':''),'ok');
+}
+
+async function aplicarImportDec(){
+  const aplic=dimpAplicaveis(); if(!aplic.length) return;
+  const muda=aplic.filter(l=>l.acao!=='novo').length;
+  if(muda && !confirm(aplic.length+' item(ns) serão gravados em '+nomeCliente(CUSTOMER)+', dos quais '+muda+' sobrescrevem/limpam uma decisão já tomada. Confirma?')) return;
+  const btn=document.getElementById('dimpSalvar'); btn.disabled=true;
+  const erros=[]; let ok=0;
+  for(const l of aplic){
+    dimpMsg('Gravando… '+(ok+erros.length+1)+'/'+aplic.length);
+    const {error}=await sb.rpc('set_decisao',{
+      p_uuid:l.uuid, p_decisao:l.alvo,
+      p_estimativa:l.novaEst, p_obs:l.novaObs==null?null:String(l.novaObs)});
+    if(error){ erros.push(l.code+': '+error.message); } else { ok++; }
+  }
+  await loadData();   // relê do Supabase — a tela passa a mostrar o que de fato gravou
+  if(erros.length){ dimpMsg(ok+' gravado(s), '+erros.length+' com erro — '+erros.slice(0,3).join(' | '),'err'); btn.disabled=false; return; }
+  dimpMsg(ok+' decisão(ões) gravada(s).','ok');
+  setTimeout(fecharImportDec, 900);
+}
+
+function dimpModelo(){
+  // modelo semeado com os itens ainda pendentes — é o que o cliente vai preencher
+  const ex=scoped().slice(0,40).map(g=>({
+    code:g.code, titulo:g.titulo||'', horas_no_painel:+g.est||0,
+    decisao:g.decisao||'pendente',
+    estimativa:g.dec_estimativa==null?null:+g.dec_estimativa,
+    observacao:g.dec_observacao||''
+  }));
+  const doc={
+    _instrucoes:{
+      casa_por:'code (código do GAP). "titulo" e "horas_no_painel" são só conferência — não são gravados.',
+      decisao:'aprovar | segunda_fase | contorno | recusar | pendente (pendente limpa a decisão). Sinônimos como "aprovado", "2ª fase", "recusado" são aceitos.',
+      estimativa:'horas decididas (opcional). null/ausente mantém o que já está gravado.',
+      observacao:'justificativa (opcional). null/ausente mantém o que já está gravado.',
+      cliente:nomeCliente(CUSTOMER)+' · '+CUSTOMER,
+      gerado_em:new Date().toLocaleString('pt-BR')
+    },
+    itens:ex
+  };
+  const blob=new Blob([JSON.stringify(doc,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='modelo_decisoes_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.json'; a.click();
+}
+
 async function loadData(){
   const st=document.getElementById('connStatus'); st.className='status load'; st.textContent='carregando…';
   const {data,error}=await sb.from('v_gaps').select('*').eq('customer',CUSTOMER);
   if(error){ st.className='status err'; st.textContent='erro'; document.getElementById('errMsg').textContent=error.message; document.getElementById('errOverlay').style.display='flex'; return; }
   GAPS=data||[];
-  await Promise.all([pgLoad(), loadAcerto(), catLoad()]);
+  await Promise.all([pgLoad(), loadAcerto(), catLoad(), rfpLoad()]);
   if(!GAPS.length){
     st.className='status err'; st.textContent='sem acesso';
     document.getElementById('errMsg').textContent =
