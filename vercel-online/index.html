@@ -88,6 +88,18 @@ tr.alto td{background:#FCEDEF}
 .grau.Alto{background:#FAD4D8;color:#B0212E} .grau.Médio{background:#FCEBCF;color:#8A5A00} .grau.MédioAlto{background:#F3DCC9;color:#9A3A12}
 .nlmtag{font-size:10px;background:#E2F5EC;color:var(--approve);padding:2px 8px;border-radius:7px;font-weight:700;cursor:pointer;border:1px solid #BFE8D2}
 .nlmrow td{background:#F2FBF6 !important;border-left:3px solid var(--approve);font-size:12px;color:#1c5e42}
+.est-cell{text-align:right;white-space:nowrap}
+.est-h{font-weight:800;font-size:13.5px;color:var(--navy)} .est-h .u{font-size:9px;font-weight:600;color:#8A94A6;margin-left:2px}
+.est-h.zero{color:#B9B9C8;font-weight:600}
+.est-sub{font-size:9.5px;color:#8A94A6;margin-top:1px}
+.drill{cursor:pointer;user-select:none;font-size:10px;font-weight:800;color:var(--navy);background:#EAF0F6;border:1px solid #D5DFEA;border-radius:6px;padding:1px 6px;display:inline-block;margin:1px 2px 1px 0}
+.drill:hover{background:#DCE6F1}
+.drillrow td{background:#F6F8FC !important;border-left:3px solid var(--navy);padding:0}
+.drill-t{width:100%;font-size:11.5px} .drill-t td{border-bottom:1px solid #E7ECF3;background:transparent !important;padding:6px 10px}
+.drill-t tr:last-child td{border-bottom:none}
+.drill-t .dt-est{text-align:right;font-weight:700;color:var(--navy);white-space:nowrap}
+.drill-t .dt-miss{color:#B9B9C8;font-style:italic}
+#tConf tfoot td{background:#EEF2F7 !important;border-top:2px solid var(--navy);border-bottom:none;font-weight:800;font-size:12.5px;color:var(--navy)}
 .nlm-card{background:#fff;border-radius:12px;border-left:4px solid var(--approve);box-shadow:0 1px 4px rgba(12,35,64,.06);padding:15px 18px;margin-bottom:12px}
 .nlm-card h4{font-size:13.5px;color:var(--navy);margin-bottom:4px}
 .nlm-card .ids{margin-bottom:8px}
@@ -243,6 +255,46 @@ tr.alto td{background:#FCEDEF}
 .ac-gap{display:grid;grid-template-columns:26px auto minmax(0,1fr) auto auto auto auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid #EDF1F4;font-size:12.5px}
 .ac-gap .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* tag do grupo de personalização */
+/* Perfil somente leitura: a trava real está no banco (assert_pode_editar);
+   aqui é só para não oferecer o que vai ser recusado. */
+body.somente-leitura .ac-chk,
+body.somente-leitura .ac-inp,
+body.somente-leitura .pg-input,
+body.somente-leitura .pg-move,
+body.somente-leitura .dec-btn,
+body.somente-leitura .dec-est,
+body.somente-leitura .dec-obs,
+body.somente-leitura #acRate,
+body.somente-leitura #pgReset,
+body.somente-leitura #acReset{pointer-events:none;opacity:.5}
+body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
+
+/* ===== aba Acessos (admin) ===== */
+.adm-new{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.adm-new input,.adm-new select{padding:8px 11px;border:1px solid #DCE3E8;border-radius:8px;
+  font-family:var(--font);font-size:12.5px;color:var(--navy);background:#fff}
+.adm-new input{min-width:230px}
+.adm-card{border:1px solid #EDF1F4;border-radius:11px;margin-top:10px;overflow:hidden;background:#fff}
+.adm-card.off{opacity:.62}
+.adm-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:10px;align-items:center;
+  padding:10px 14px;background:#F8F9FC;border-left:4px solid var(--navy)}
+.adm-card.off .adm-head{border-left-color:#C3CBD3}
+.adm-nome{font-weight:800;color:var(--navy);font-size:13px}
+.adm-mail{font-size:11.5px;color:var(--gray);overflow:hidden;text-overflow:ellipsis}
+.adm-sel{padding:5px 8px;border:1px solid #DCE3E8;border-radius:7px;font-family:var(--font);font-size:11.5px;
+  color:var(--navy);background:#fff;cursor:pointer}
+.adm-eu{font-size:9px;font-weight:800;background:var(--lilas);color:var(--roxo);padding:2px 7px;border-radius:6px}
+.adm-body{padding:10px 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.adm-body{grid-template-columns:1fr}}
+.adm-bl h4{margin:0 0 7px;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);font-weight:800}
+.adm-chks{display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow:auto}
+.adm-chk{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #DCE3E8;border-radius:8px;
+  font-size:11.5px;color:var(--ink);cursor:pointer;background:#fff;white-space:nowrap}
+.adm-chk:hover{border-color:var(--roxo)}
+.adm-chk input{width:14px;height:14px;cursor:pointer;accent-color:var(--roxo)}
+.adm-chk.on{background:var(--lilas);border-color:#D8D0FF;color:var(--roxo);font-weight:700}
+.adm-hint{font-size:10.5px;color:var(--gray);margin-top:6px}
+.adm-warn{font-size:11.5px;color:#8A5A00;background:#FFF7EC;border-radius:8px;padding:7px 10px;margin-top:6px}
 .pg-mini{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:7px;white-space:nowrap;max-width:170px;
   overflow:hidden;text-overflow:ellipsis;background:#EFEBFF;color:#4A3BC7;border:1px solid #D8D0FF}
 .pg-mini.fora{background:#FFF7EC;color:#8A5A00;border-color:#F6E0B8}
@@ -285,6 +337,12 @@ tr.alto td{background:#FCEDEF}
   font-size:12.5px;font-weight:600;display:none}
 .login-foot{margin-top:18px;font-size:11px;color:var(--gray-light);text-align:center;line-height:1.5}
 .tb-user{grid-area:user;justify-self:end;display:flex;align-items:center;gap:9px;font-size:11.5px;color:#C9D6E6;white-space:nowrap}
+.tb-cli{display:flex;align-items:center;gap:6px;margin-top:5px}
+.tb-cli select{max-width:280px;padding:4px 8px;border:1px solid rgba(255,255,255,.28);border-radius:7px;
+  background:rgba(255,255,255,.08);color:#fff;font-family:var(--font);font-size:11.5px;font-weight:600;cursor:pointer}
+.tb-cli select:hover{border-color:#fff}
+.tb-cli select option{background:var(--navy);color:#fff}
+.tb-cli .lbl{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray-light);font-weight:700}
 .tb-user b{color:#fff;font-weight:700}
 .tb-user .badge{background:rgba(255,255,255,.16);color:#fff;border-radius:5px;padding:1px 6px;
   font-size:9.5px;font-weight:800;letter-spacing:.3px}
@@ -317,8 +375,10 @@ tr.alto td{background:#FCEDEF}
       <div class="tb-logo">TOTVS</div>
       <div class="tb-titles">
         <div class="t1">TOTVS · Santa Catarina</div>
-        <div class="t2">Serviço × Comercial — DIGITRO <span class="status load" id="connStatus">conectando…</span></div>
-        <div class="t3">Cliente 000348D0 · dados ao vivo do Supabase (schema svc_comercial) · decisões em cockpit.decisoes</div>
+        <div class="t2">Serviço × Comercial — <span id="tbCliNome">…</span> <span class="status load" id="connStatus">conectando…</span></div>
+        <div class="tb-cli"><span class="lbl">Cliente</span>
+          <select id="tbCliente" title="Só aparecem os clientes liberados para o seu usuário"></select>
+        </div>
       </div>
     </div>
     <div class="tb-kpis" id="kpis"></div>
@@ -334,6 +394,7 @@ tr.alto td{background:#FCEDEF}
   <button class="tab" data-p="pgrupos">Grupos de Personalização <span class="b" id="bpg">8</span></button>
   <button class="tab" data-p="acerto">Acerto de contas <span class="b" id="bac">0</span></button>
   <button class="tab" data-p="decisao">Tomada de decisão <span class="b" id="bdec">0</span></button>
+  <button class="tab adm" data-p="admin" style="display:none">Acessos <span class="b" id="badm">0</span></button>
   <div class="scope-wrap">
     <label for="scopeSel">Escopo:</label>
     <select id="scopeSel">
@@ -389,11 +450,12 @@ tr.alto td{background:#FCEDEF}
   </div>
 
   <div class="panel" id="p-conflitos">
-    <p class="note">Requisitos respondidos na RFP como “Atende = Sim / Escopo” que viraram GAP. Clique em <b>NLM</b> para a nota comercial. Linhas vermelhas = grau Alto.</p>
+    <p class="note">Requisitos respondidos na RFP como “Atende = Sim / Escopo” que viraram GAP. <b>Est. (h)</b> = soma das estimativas dos GAPs da linha; clique em <b>▸ n GAPs</b> para abrir o detalhe item a item. Clique em <b>NLM</b> para a nota comercial. Linhas vermelhas = grau Alto.</p>
     <div class="card" style="padding:0;overflow:hidden">
       <table id="tConf"><thead><tr>
-        <th>GAP(s)</th><th>Funcionalidade</th><th>Módulo</th><th>Resp. RFP</th><th>Observação RFP</th><th>Grau</th><th>NLM</th>
-      </tr></thead><tbody></tbody></table>
+        <th>GAP(s)</th><th>Funcionalidade</th><th>Módulo</th><th>Resp. RFP</th><th>Observação RFP</th><th style="text-align:right">Est. (h)</th><th>Grau</th><th>NLM</th>
+      </tr></thead><tbody></tbody>
+      <tfoot><tr><td colspan="5">Total RFP × GAP</td><td class="est-cell" id="confTot">—</td><td colspan="2"></td></tr></tfoot></table>
     </div>
   </div>
 
@@ -498,6 +560,28 @@ tr.alto td{background:#FCEDEF}
     </div>
     <div id="decList"></div>
   </div>
+
+  <div class="panel" id="p-admin">
+    <p class="note">Quem entra no painel, o que cada um enxerga. O acesso é por <b>e-mail</b>:
+      o cadastro aqui é a <b>allowlist</b> (<code>cockpit.usuarios_login</code>) — a senha é do Supabase Auth,
+      criada pela própria pessoa no primeiro acesso. <b>Sem cliente liberado, o usuário não vê nada.</b>
+      Admin enxerga todos os clientes.</p>
+    <div class="card">
+      <h3><span class="num">+</span> Novo acesso</h3>
+      <div class="adm-new">
+        <input id="admNovoEmail" type="email" placeholder="nome.sobrenome@totvs.com.br">
+        <input id="admNovoNome" placeholder="Nome de exibição">
+        <select id="admNovoPerfil">
+          <option value="comum">Editor — decide, estima e cancela</option>
+          <option value="leitor">Leitor — só consulta</option>
+          <option value="cliente">Cliente — só consulta</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button class="btn-ghost" id="admAdd">Cadastrar</button>
+      </div>
+    </div>
+    <div id="admList"></div>
+  </div>
 </div>
 
 <div class="footer">
@@ -523,11 +607,14 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, {
   auth:{ persistSession:true, autoRefreshToken:true, storageKey:'svc-comercial-auth' }
 });
 
-// ===== Cliente deste painel (a curadoria RFP/proposta abaixo é da DIGITRO) =====
-// A v_gaps já vem recortada pelos clientes liberados ao usuário logado; este .eq
-// mantém o painel na DIGITRO mesmo para admins (que enxergam todos os clientes).
-const CUSTOMER = '000348D0';
+// ===== Cliente em foco =====
+// A v_gaps já vem recortada pelos clientes liberados ao usuário logado; o seletor
+// do topo escolhe qual deles o painel mostra. A DIGITRO é só o padrão inicial.
+const CUSTOMER_PADRAO = '000348D0';
+let CUSTOMER = localStorage.getItem('svc-customer') || CUSTOMER_PADRAO;
 let ME = null;
+const CLIENTES = {};                       // customer -> nome
+const nomeCliente = c => CLIENTES[c] || c;
 
 // ===== Curadoria estática: conflitos RFP × GAP + notas NotebookLM (por código de ticket) =====
 const CONFLITOS = [
@@ -672,19 +759,57 @@ function renderTagCharts(){
   });
 }
 
+// Índice code -> ticket (usa o universo completo carregado, não o escopo da tela)
+const gapByCode = () => { const m={}; GAPS.forEach(g=>{ if(g.code) m[g.code]=g; }); return m; };
+// Soma das estimativas dos GAPs de uma linha de conflito
+function confEst(c,BY){ return c.ids.reduce((s,id)=>s+(+((BY[id]||{}).est)||0),0); }
+
 function renderConflitos(){
   document.getElementById('bconf').textContent=CONFLITOS.length;
+  const BY=gapByCode();
   const tb=document.querySelector('#tConf tbody');
   tb.innerHTML=CONFLITOS.map((c,i)=>{
-    const ids=c.ids.map(x=>`<span class="code">${x}</span>`).join('');
+    const est=confEst(c,BY);
+    const achados=c.ids.filter(id=>BY[id]).length;
+    const multi=c.ids.length>1;
+    const ids=multi
+      ? `<span class="drill" data-i="${i}">▸ ${c.ids.length} GAPs</span>`
+      : c.ids.map(x=>`<span class="code">${x}</span>`).join('');
+    const estCell=`<div class="est-h ${est>0?'':'zero'}">${est>0?fmt(est):'—'}${est>0?'<span class="u">h</span>':''}</div>`
+      + (multi?`<div class="est-sub">${achados}/${c.ids.length} GAPs</div>`:'');
     const nlm=NLM_NOTAS[c.grupo]?`<span class="nlmtag" data-i="${i}">＋ NLM</span>`:'—';
-    return `<tr class="${c.grau==='Alto'?'alto':''}"><td>${ids}</td><td><b>${c.titulo}</b></td><td>${c.modulo}</td><td>${c.rfp}</td><td>${c.obs}</td><td><span class="grau ${c.grau.replace('/','')}">${c.grau}</span></td><td>${nlm}</td></tr>`;
+    return `<tr class="${c.grau==='Alto'?'alto':''}"><td>${ids}</td><td><b>${c.titulo}</b></td><td>${c.modulo}</td><td>${c.rfp}</td><td>${c.obs}</td><td class="est-cell">${estCell}</td><td><span class="grau ${c.grau.replace('/','')}">${c.grau}</span></td><td>${nlm}</td></tr>`;
   }).join('');
+
+  // Total (dedup por código — um mesmo GAP não conta duas vezes)
+  const seen=new Set(); let tot=0;
+  CONFLITOS.forEach(c=>c.ids.forEach(id=>{ if(seen.has(id))return; seen.add(id); tot+=(+((BY[id]||{}).est)||0); }));
+  document.getElementById('confTot').innerHTML=`<span class="est-h ${tot>0?'':'zero'}">${tot>0?fmt(tot):'—'}${tot>0?'<span class="u">h</span>':''}</span>`;
+
+  // Drill-down: abre os GAPs individuais da linha
+  tb.querySelectorAll('.drill').forEach(t=>t.onclick=()=>{
+    const c=CONFLITOS[+t.dataset.i],row=t.closest('tr');
+    const nx=row.nextElementSibling;
+    if(nx&&nx.classList.contains('drillrow')){nx.remove();t.textContent=`▸ ${c.ids.length} GAPs`;return;}
+    const linhas=c.ids.map(id=>{
+      const g=BY[id];
+      if(!g) return `<tr><td><span class="code">${id}</span></td><td class="dt-miss" colspan="3">não encontrado no universo de tickets do cliente</td><td class="dt-est">—</td></tr>`;
+      return `<tr><td><span class="code">${id}</span></td><td>${g.titulo||'—'}</td><td><span class="tag-mini etapa">${g.etapa_gap||'—'}</span></td><td><span class="tag-mini">${g.status_tasks||'—'}</span></td><td class="dt-est">${+g.est>0?fmt(g.est)+' h':'—'}</td></tr>`;
+    }).join('');
+    const tr=document.createElement('tr');tr.className='drillrow';
+    tr.innerHTML=`<td colspan="8"><table class="drill-t"><tbody>${linhas}
+      <tr><td colspan="4" style="text-align:right;font-weight:800">Subtotal</td><td class="dt-est">${confEst(c,BY)>0?fmt(confEst(c,BY))+' h':'—'}</td></tr>
+      </tbody></table></td>`;
+    row.after(tr);t.textContent=`▾ ${c.ids.length} GAPs`;
+  });
+
   tb.querySelectorAll('.nlmtag').forEach(t=>t.onclick=()=>{
     const c=CONFLITOS[+t.dataset.i],row=t.closest('tr');
-    if(row.nextElementSibling&&row.nextElementSibling.classList.contains('nlmrow')){row.nextElementSibling.remove();return;}
+    let anchor=row;
+    while(anchor.nextElementSibling&&anchor.nextElementSibling.classList.contains('drillrow'))anchor=anchor.nextElementSibling;
+    if(anchor.nextElementSibling&&anchor.nextElementSibling.classList.contains('nlmrow')){anchor.nextElementSibling.remove();return;}
     const tr=document.createElement('tr');tr.className='nlmrow';
-    tr.innerHTML=`<td colspan="7"><b>NotebookLM · ${c.titulo}:</b> ${NLM_NOTAS[c.grupo]}</td>`;row.after(tr);
+    tr.innerHTML=`<td colspan="8"><b>NotebookLM · ${c.titulo}:</b> ${NLM_NOTAS[c.grupo]}</td>`;anchor.after(tr);
   });
 }
 function renderNlm(){
@@ -889,10 +1014,10 @@ document.getElementById('pgReset').onclick=async()=>{
   renderPG(); renderAcerto();
 };
 document.getElementById('pgExport').onclick=()=>{
-  const out={cliente:'DIGITRO',customer:'000348D0',prop_total:PG_PROP_TOTAL,gerado_em:new Date().toISOString(),
+  const out={cliente:nomeCliente(CUSTOMER),customer:CUSTOMER,prop_total:PG_PROP_TOTAL,gerado_em:new Date().toISOString(),
     grupos:PG.map(g=>({nome:g.nome,prop:+g.prop||0,est_task:(g.gaps||[]).reduce((s,c)=>s+estOf(c),0),gaps:g.gaps||[]}))};
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='personalizacoes_DIGITRO.json';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='personalizacoes_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.json';a.click();
 };
 
 // ===================== ACERTO DE CONTAS =====================
@@ -934,7 +1059,16 @@ async function saveAcertoGap(uuid,incluido){
 const canceladoModulo = m => CANC[kMod(m.modulo)]
   ? (+CANC[kMod(m.modulo)].horas_canceladas||0)
   : m.itens.reduce((s,i)=>s+(CANC[kSub(m.modulo,i.nome)]?+CANC[kSub(m.modulo,i.nome)].horas_canceladas||0:0),0);
-const creditoModulos = () => CATALOGO.reduce((s,m)=>s+canceladoModulo(m),0);
+// Catálogo de módulos contratados: vive no Supabase (svc_comercial.catalogo_modulos/itens),
+// por cliente. O catalogo.js continua no repositório só como semente da DIGITRO.
+let CAT = [];
+async function catLoad(){
+  const {data,error}=await sb.rpc('catalogo',{p_customer:CUSTOMER});
+  if(error){ console.warn('catalogo: falha ao ler do Supabase —',error.message); CAT=[]; return; }
+  CAT = Array.isArray(data)?data:[];
+}
+
+const creditoModulos = () => CAT.reduce((s,m)=>s+canceladoModulo(m),0);
 const creditoPers    = () => (PG||[]).reduce((s,g)=>s+(CANC[kPers(g.nome)]?+CANC[kPers(g.nome)].horas_canceladas||0:0),0);
 
 // --- classificação GAP (tag 4:CLASSIFICACAO::*) ---
@@ -1047,8 +1181,10 @@ function renderAcerto(){
   // 1) módulos
   const hdr=`<div class="ac-hdr"><div></div><div>Módulo / subitem</div><div class="r">Contratado</div>
     <div class="r">Cancelado</div><div class="r">Saldo</div><div></div></div>`;
-  let html=hdr;
-  CATALOGO.forEach((m,mi)=>{
+  let html=CAT.length?hdr:`<div class="ac-pgd-empty">Nenhum módulo contratado cadastrado para
+    <b>${nomeCliente(CUSTOMER)}</b>. O escopo contratado fica em <code>svc_comercial.catalogo_modulos</code>
+    — enquanto não for cadastrado, o crédito deste cliente sai só das personalizações.</div>`;
+  CAT.forEach((m,mi)=>{
     const modK=kMod(m.modulo), modOn=!!CANC[modK];
     const canc=canceladoModulo(m), saldoM=m.total-canc;
     const open=EXPANDED.has(m.modulo);
@@ -1072,8 +1208,8 @@ function renderAcerto(){
       });
     }
   });
-  const totC=CATALOGO.reduce((s,m)=>s+m.total,0);
-  html+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL IMPLANTAÇÃO</div>
+  const totC=CAT.reduce((s,m)=>s+(+m.total||0),0);
+  if(CAT.length) html+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL IMPLANTAÇÃO</div>
     <div class="ac-num">${fmt(totC)} h</div><div class="ac-num neg" style="text-align:right">${fmt(cMod)} h</div>
     <div class="ac-num">${fmt(totC-cMod)} h</div><div></div></div>`;
   document.getElementById('acModulos').innerHTML=html;
@@ -1159,19 +1295,19 @@ function bindAcerto(){
     togglePG(decodeURIComponent(r.querySelector('[data-exppg]').dataset.exppg));
   });
   document.querySelectorAll('[data-mod]').forEach(c=>c.onchange=async()=>{
-    const m=CATALOGO[+c.dataset.mod];
+    const m=CAT[+c.dataset.mod];
     if(await saveCancel('modulo',m.modulo,null,m.total,m.total,c.checked)) renderAcerto();
   });
   document.querySelectorAll('[data-modh]').forEach(i=>i.onchange=async()=>{
-    const m=CATALOGO[+i.dataset.modh];
+    const m=CAT[+i.dataset.modh];
     if(await saveCancel('modulo',m.modulo,null,m.total,+i.value||0,true)) renderAcerto();
   });
   document.querySelectorAll('[data-sub]').forEach(c=>c.onchange=async()=>{
-    const [mi,ii]=c.dataset.sub.split(':').map(Number); const m=CATALOGO[mi], it=m.itens[ii];
+    const [mi,ii]=c.dataset.sub.split(':').map(Number); const m=CAT[mi], it=m.itens[ii];
     if(await saveCancel('subitem',m.modulo,it.nome,it.horas,it.horas,c.checked)) renderAcerto();
   });
   document.querySelectorAll('[data-subh]').forEach(i=>i.onchange=async()=>{
-    const [mi,ii]=i.dataset.subh.split(':').map(Number); const m=CATALOGO[mi], it=m.itens[ii];
+    const [mi,ii]=i.dataset.subh.split(':').map(Number); const m=CAT[mi], it=m.itens[ii];
     if(await saveCancel('subitem',m.modulo,it.nome,it.horas,+i.value||0,true)) renderAcerto();
   });
   document.querySelectorAll('[data-pers]').forEach(c=>c.onchange=async()=>{
@@ -1210,7 +1346,7 @@ document.getElementById('acReset').onclick=async()=>{
 };
 document.getElementById('acExport').onclick=()=>{
   const r=rate(), rows=[['bloco','modulo/grupo','item','contratado_h','cancelado_h','saldo_h']];
-  CATALOGO.forEach(m=>{const c=canceladoModulo(m);if(c>0)rows.push(['modulo',m.modulo,'',m.total,c,m.total-c]);
+  CAT.forEach(m=>{const c=canceladoModulo(m);if(c>0)rows.push(['modulo',m.modulo,'',m.total,c,m.total-c]);
     m.itens.forEach(i=>{const k=kSub(m.modulo,i.nome);if(CANC[k])rows.push(['subitem',m.modulo,'"'+i.nome+'"',i.horas,CANC[k].horas_canceladas,i.horas-CANC[k].horas_canceladas]);});});
   PG.forEach(g=>{const k=kPers(g.nome);if(CANC[k])rows.push(['personalizacao','"'+g.nome+'"','',g.prop,CANC[k].horas_canceladas,(+g.prop||0)-CANC[k].horas_canceladas]);});
   rows.push([]); rows.push(['GAP (débito)','code','titulo','','horas','']);
@@ -1219,16 +1355,16 @@ document.getElementById('acExport').onclick=()=>{
   rows.push([]); rows.push(['RESUMO','credito_h',cr,'debito_h',db,'saldo_h',cr-db]);
   rows.push(['RESUMO_RS','credito',cr*r,'debito',db*r,'saldo',(cr-db)*r]);
   const blob=new Blob([rows.map(x=>x.join(';')).join('\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_DIGITRO.csv';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.csv';a.click();
 };
 document.getElementById('acExportJson').onclick=()=>{
   const r=rate(), cr=creditoModulos()+creditoPers(), db=debitoHoras();
-  const out={cliente:'DIGITRO',customer:'000348D0',gerado_em:new Date().toISOString(),valor_hora:r,
+  const out={cliente:nomeCliente(CUSTOMER),customer:CUSTOMER,gerado_em:new Date().toISOString(),valor_hora:r,
     cancelamentos:Object.values(CANC),
     gaps_debito:gapsDebito().map(g=>({code:g.code,titulo:g.titulo,horas:+g.est||0,decisao:g.decisao||null})),
     resumo:{credito_h:cr,debito_h:db,saldo_h:cr-db,credito_rs:cr*r,debito_rs:db*r,saldo_rs:(cr-db)*r}};
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_DIGITRO.json';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='acerto_de_contas_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.json';a.click();
 };
 
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
@@ -1239,6 +1375,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.p==='tags')renderTagCharts();
   if(t.dataset.p==='pgrupos')renderPG();
   if(t.dataset.p==='acerto')renderAcerto();
+  if(t.dataset.p==='admin')renderAdmin();
 });
 document.getElementById('scopeSel').onchange=e=>{
   SCOPE=e.target.value;
@@ -1254,7 +1391,7 @@ document.getElementById('btnExport').onclick=()=>{
   const rows=[['code','titulo','produto','etapa_gap','status','horas','balde','decisao']];
   scoped().forEach(g=>rows.push([g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"',g.produto,g.etapa_gap,g.status_tasks,g.est,effBucket(g),g.decisao||'']));
   const blob=new Blob([rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='decisoes_servico_comercial_DIGITRO.csv';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='decisoes_servico_comercial_'+nomeCliente(CUSTOMER).replace(/\W+/g,'_')+'.csv';a.click();
 };
 
 async function loadData(){
@@ -1262,25 +1399,77 @@ async function loadData(){
   const {data,error}=await sb.from('v_gaps').select('*').eq('customer',CUSTOMER);
   if(error){ st.className='status err'; st.textContent='erro'; document.getElementById('errMsg').textContent=error.message; document.getElementById('errOverlay').style.display='flex'; return; }
   GAPS=data||[];
-  await Promise.all([pgLoad(), loadAcerto()]);
+  await Promise.all([pgLoad(), loadAcerto(), catLoad()]);
   if(!GAPS.length){
     st.className='status err'; st.textContent='sem acesso';
     document.getElementById('errMsg').textContent =
-      'Seu usuário ('+(ME?.email||'?')+') não tem o cliente '+CUSTOMER+' (DIGITRO) liberado, ou não há dados para ele. Peça a liberação ao administrador do painel.';
+      'Seu usuário ('+(ME?.email||'?')+') não tem o cliente '+CUSTOMER+' ('+nomeCliente(CUSTOMER)+') liberado, ou não há dados para ele. Peça a liberação ao administrador do painel.';
     document.getElementById('errOverlay').style.display='flex'; return;
   }
   st.className='status ok'; st.textContent=GAPS.length+' GAPs ao vivo';
+  document.getElementById('errOverlay').style.display='none';
   renderKpis();renderGeralCharts();renderConflitos();renderNlm();renderDec();renderPG();renderAcerto();
 }
 
 // ===== Autenticação (Supabase Auth) =====
 const $login=document.getElementById('loginWrap'), $shell=document.getElementById('appShell');
 
+const PERFIL_ROT = {admin:'Administrador',comum:'Editor',cliente:'Cliente',leitor:'Leitor'};
+
 function renderUser(){
+  const p=ME?.perfil||'leitor';
+  const badge = ME?.is_admin ? '<span class="badge">ADMIN</span>'
+              : (ME?.pode_editar ? '' : '<span class="badge" title="Seu perfil é somente leitura">SÓ LEITURA</span>');
   document.getElementById('tbUser').innerHTML =
-    '<span><b>'+(ME?.nome||ME?.email||'')+'</b>'+(ME?.is_admin?' <span class="badge">ADMIN</span>':'')+'</span>'+
+    '<span><b>'+(ME?.nome||ME?.email||'')+'</b> '+badge+'</span>'+
     '<button id="btnSair" type="button">Sair</button>';
   document.getElementById('btnSair').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+  document.getElementById('tbUser').title = 'Perfil: '+(PERFIL_ROT[p]||p);
+}
+
+// ===== Clientes: só os liberados; o combo do topo escolhe o foco =====
+async function carregarClientes(){
+  // nomes vêm do cockpit.clientes; a lista permitida vem do me()
+  const permitidos = ME?.clientes || [];
+  const {data} = await sb.schema('cockpit').from('clientes').select('customer,nome');
+  (data||[]).forEach(c=>{ CLIENTES[c.customer]=c.nome||c.customer; });
+  permitidos.forEach(c=>{ if(!CLIENTES[c]) CLIENTES[c]=c; });
+
+  if(!permitidos.includes(CUSTOMER)) CUSTOMER = permitidos.includes(CUSTOMER_PADRAO)
+    ? CUSTOMER_PADRAO : (permitidos[0]||CUSTOMER_PADRAO);
+  localStorage.setItem('svc-customer',CUSTOMER);
+
+  const sel=document.getElementById('tbCliente');
+  sel.innerHTML = permitidos.map(c=>
+    `<option value="${c}" ${c===CUSTOMER?'selected':''}>${nomeCliente(c)} · ${c}</option>`).join('')
+    || `<option value="${CUSTOMER}">${nomeCliente(CUSTOMER)} · ${CUSTOMER}</option>`;
+  sel.disabled = permitidos.length<2;
+  sel.onchange = async()=>{
+    CUSTOMER = sel.value; localStorage.setItem('svc-customer',CUSTOMER);
+    EXPANDED.clear(); EXPANDED_PG.clear(); AC_AUTO=true;
+    document.getElementById('tbCliNome').textContent = nomeCliente(CUSTOMER);
+    document.title = 'Serviço × Comercial — '+nomeCliente(CUSTOMER)+' · online';
+    await loadData();
+  };
+  document.getElementById('tbCliNome').textContent = nomeCliente(CUSTOMER);
+  document.title = 'Serviço × Comercial — '+nomeCliente(CUSTOMER)+' · online';
+}
+
+// ===== Abas liberadas + perfil somente leitura =====
+function aplicarPermissoes(){
+  const abas = ME?.abas || [];
+  document.querySelectorAll('.tab').forEach(t=>{
+    const p=t.dataset.p;
+    if(p==='admin'){ t.style.display = ME?.is_admin ? '' : 'none'; return; }
+    t.style.display = abas.includes(p) ? '' : 'none';
+  });
+  // se a aba ativa não é mais permitida, cai na primeira visível
+  const act=document.querySelector('.tab.active');
+  if(!act || act.style.display==='none'){
+    const primeira=[...document.querySelectorAll('.tab')].find(t=>t.style.display!=='none');
+    if(primeira) primeira.click();
+  }
+  document.body.classList.toggle('somente-leitura', !(ME?.pode_editar));
 }
 
 async function startApp(){
@@ -1300,8 +1489,116 @@ async function startApp(){
   }
   $login.style.display='none'; $shell.style.display='block';
   renderUser();
+  await carregarClientes();
+  aplicarPermissoes();
   await loadData();
 }
+
+// ===== Aba Acessos (só admin) =====
+const ABAS_DEF = [['geral','Visão geral'],['tags','Decisões por tag'],['conflitos','RFP × GAP'],
+  ['nlm','NotebookLM'],['pgrupos','Grupos de Personalização'],['acerto','Acerto de contas'],
+  ['decisao','Tomada de decisão']];
+let ADM_USERS=null, ADM_CLIS=null;
+
+async function admLoad(){
+  const [u,c]=await Promise.all([sb.rpc('admin_usuarios'), sb.rpc('admin_clientes')]);
+  if(u.error){ alert('Falha ao ler os usuários: '+u.error.message); return false; }
+  if(c.error){ alert('Falha ao ler os clientes: '+c.error.message); return false; }
+  ADM_USERS=u.data||[]; ADM_CLIS=c.data||[];
+  return true;
+}
+
+async function renderAdmin(){
+  if(!ME?.is_admin) return;
+  if(!ADM_USERS){ if(!await admLoad()) return; }
+  document.getElementById('badm').textContent=ADM_USERS.filter(u=>u.ativo).length;
+
+  document.getElementById('admList').innerHTML = ADM_USERS.map((u,i)=>{
+    const eu = (u.email||'').toLowerCase()===(ME.email||'').toLowerCase();
+    const clis = ADM_CLIS.map(c=>{
+      const on=(u.clientes||[]).includes(c.customer);
+      return `<label class="adm-chk ${on?'on':''}"><input type="checkbox" data-cli="${i}" value="${c.customer}" ${on?'checked':''}>
+        ${c.nome} <span style="color:var(--gray);font-weight:600">${c.tickets}</span></label>`;
+    }).join('');
+    const abas = ABAS_DEF.map(([k,rot])=>{
+      const on=(u.abas||[]).includes(k);
+      return `<label class="adm-chk ${on?'on':''}"><input type="checkbox" data-aba="${i}" value="${k}" ${on?'checked':''}>${rot}</label>`;
+    }).join('');
+    return `<div class="adm-card ${u.ativo?'':'off'}">
+      <div class="adm-head">
+        <div><div class="adm-nome">${u.nome||'(sem nome)'} ${eu?'<span class="adm-eu">você</span>':''}</div>
+          <div class="adm-mail">${u.email}${u.last_login?' · último acesso '+new Date(u.last_login).toLocaleDateString('pt-BR'):' · nunca entrou'}</div></div>
+        <select class="adm-sel" data-perfil="${i}" ${eu?'disabled title="Você não pode mudar o próprio perfil"':''}>
+          ${Object.entries(PERFIL_ROT).map(([k,r])=>`<option value="${k}" ${u.perfil===k?'selected':''}>${r}</option>`).join('')}
+        </select>
+        <select class="adm-sel" data-ativo="${i}" ${eu?'disabled title="Você não pode se inativar"':''}>
+          <option value="1" ${u.ativo?'selected':''}>Ativo</option>
+          <option value="0" ${u.ativo?'':'selected'}>Inativo</option>
+        </select>
+        <button class="btn-ghost" data-senha="${u.email}" title="Envia por e-mail o link para a pessoa definir a senha">Enviar link de senha</button>
+        <button class="btn-ghost" data-salvar="${i}">Salvar acessos</button>
+      </div>
+      <div class="adm-body">
+        <div class="adm-bl"><h4>Clientes liberados (${(u.clientes||[]).length})</h4>
+          <div class="adm-chks">${clis||'<span class="adm-hint">Nenhum cliente com ticket no banco.</span>'}</div>
+          ${u.perfil==='admin'?'<div class="adm-warn">Administrador enxerga todos os clientes, independente desta lista.</div>'
+            :((u.clientes||[]).length?'':'<div class="adm-warn">Sem cliente liberado: este usuário não vê nada e nem consegue entrar.</div>')}
+        </div>
+        <div class="adm-bl"><h4>Abas visíveis (${(u.abas||[]).length} de ${ABAS_DEF.length})</h4>
+          <div class="adm-chks">${abas}</div>
+          ${u.abas_padrao?'<div class="adm-hint">Nada marcado ainda — no padrão, o usuário vê todas as abas. Marque para restringir.</div>':''}
+          ${(u.abas||[]).length?'':'<div class="adm-warn">Nenhuma aba marcada equivale a liberar todas (padrão).</div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Nenhum usuário cadastrado.</div>';
+
+  // marca/desmarca reflete no chip na hora
+  document.querySelectorAll('#admList .adm-chk input').forEach(c=>c.onchange=()=>
+    c.closest('.adm-chk').classList.toggle('on',c.checked));
+
+  document.querySelectorAll('[data-salvar]').forEach(b=>b.onclick=async()=>{
+    const i=+b.dataset.salvar, u=ADM_USERS[i];
+    const clientes=[...document.querySelectorAll(`[data-cli="${i}"]:checked`)].map(x=>x.value);
+    const abas=[...document.querySelectorAll(`[data-aba="${i}"]:checked`)].map(x=>x.value);
+    const perfil=document.querySelector(`[data-perfil="${i}"]`).value;
+    const ativo=document.querySelector(`[data-ativo="${i}"]`).value==='1';
+    b.disabled=true; b.textContent='Salvando…';
+    const r1=await sb.rpc('admin_set_usuario',{p_email:u.email,p_nome:u.nome,p_ativo:ativo,p_perfil:perfil});
+    const r2=r1.error?null:await sb.rpc('admin_set_clientes',{p_email:u.email,p_customers:clientes});
+    const r3=(r1.error||r2?.error)?null:await sb.rpc('admin_set_abas',{p_email:u.email,p_abas:abas});
+    b.disabled=false; b.textContent='Salvar acessos';
+    const err=r1.error||r2?.error||r3?.error;
+    if(err){ alert('Não gravei: '+err.message); return; }
+    ADM_USERS=null; await renderAdmin();
+    // mexeu em mim mesmo? recarrega minhas permissões
+    if((u.email||'').toLowerCase()===(ME.email||'').toLowerCase()){
+      const {data}=await sb.rpc('me'); ME=Array.isArray(data)?data[0]:data;
+      renderUser(); aplicarPermissoes();
+    }
+  });
+
+  document.querySelectorAll('[data-senha]').forEach(b=>b.onclick=async()=>{
+    const email=b.dataset.senha;
+    if(!confirm(`Enviar para ${email} o link de definição de senha?`)) return;
+    b.disabled=true;
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    b.disabled=false;
+    alert(error?('Falha ao enviar: '+error.message):'Link enviado para '+email+'.');
+  });
+}
+
+document.getElementById('admAdd').onclick=async()=>{
+  const email=document.getElementById('admNovoEmail').value.trim().toLowerCase();
+  const nome=document.getElementById('admNovoNome').value.trim();
+  const perfil=document.getElementById('admNovoPerfil').value;
+  if(!email||!email.includes('@')){ alert('Informe um e-mail válido.'); return; }
+  const {error}=await sb.rpc('admin_set_usuario',{p_email:email,p_nome:nome||email,p_ativo:true,p_perfil:perfil});
+  if(error){ alert('Não cadastrei: '+error.message); return; }
+  document.getElementById('admNovoEmail').value=''; document.getElementById('admNovoNome').value='';
+  ADM_USERS=null; await renderAdmin();
+  alert('Cadastrado. Agora libere os clientes e as abas, e use "Enviar link de senha" para a pessoa criar o acesso.');
+};
 
 function showLogin(msg){
   $shell.style.display='none'; $login.style.display='flex';
