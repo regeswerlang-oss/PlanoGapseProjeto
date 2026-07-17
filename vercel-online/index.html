@@ -213,9 +213,54 @@ tr.alto td{background:#FCEDEF}
 .ac-res tr.tot td{border-top:2px solid var(--navy);border-bottom:none;font-size:15px;padding-top:11px}
 .ac-res tr.tot td:last-child{color:var(--roxo)}
 .ac-res .cr{color:var(--approve)} .ac-res .db{color:var(--refuse)}
+/* ===== login ===== */
+#appShell{display:none}
+.login-wrap{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0C1F3F 0%,#173A6D 100%);padding:20px}
+.login-card{background:#fff;border-radius:16px;padding:34px 32px;width:100%;max-width:392px;
+  box-shadow:0 24px 60px rgba(0,0,0,.34)}
+.login-card .lg{font-weight:900;letter-spacing:-.5px;font-size:22px;color:var(--navy)}
+.login-card h2{margin:14px 0 4px;font-size:18px;color:var(--navy)}
+.login-card p.sub{margin:0 0 20px;font-size:12.5px;color:var(--gray)}
+.login-card label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+  color:var(--gray);margin:12px 0 5px}
+.login-card input{width:100%;padding:11px 12px;border:1px solid #DCE3E8;border-radius:9px;font-size:14px;
+  font-family:inherit;box-sizing:border-box}
+.login-card input:focus{outline:none;border-color:var(--roxo);box-shadow:0 0 0 3px rgba(139,68,220,.13)}
+.login-card button{width:100%;margin-top:20px;padding:12px;border:none;border-radius:9px;background:var(--navy);
+  color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
+.login-card button:hover{background:#173A6D}
+.login-card button:disabled{opacity:.6;cursor:default}
+.login-err{margin-top:14px;padding:10px 12px;border-radius:9px;background:#FDECEE;color:#A32330;
+  font-size:12.5px;font-weight:600;display:none}
+.login-foot{margin-top:18px;font-size:11px;color:var(--gray-light);text-align:center;line-height:1.5}
+.tb-user{display:flex;align-items:center;gap:9px;font-size:11.5px;color:#C9D6E6;white-space:nowrap}
+.tb-user b{color:#fff;font-weight:700}
+.tb-user .badge{background:rgba(255,255,255,.16);color:#fff;border-radius:5px;padding:1px 6px;
+  font-size:9.5px;font-weight:800;letter-spacing:.3px}
+.tb-user button{background:none;border:1px solid rgba(255,255,255,.32);color:#C9D6E6;border-radius:7px;
+  padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.tb-user button:hover{border-color:#fff;color:#fff}
 </style>
 </head>
 <body>
+
+<div class="login-wrap" id="loginWrap" style="display:none">
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="lg">TOTVS</div>
+    <h2>Serviço × Comercial</h2>
+    <p class="sub">Painel restrito. Entre com seu e-mail corporativo.</p>
+    <label for="loginEmail">E-mail</label>
+    <input type="email" id="loginEmail" required autocomplete="username" placeholder="nome.sobrenome@totvs.com.br">
+    <label for="loginPass">Senha</label>
+    <input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••">
+    <button type="submit" id="loginBtn">Entrar</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-foot">Seu acesso mostra apenas os clientes liberados para o seu usuário.<br>Sem acesso? Fale com o administrador do painel.</div>
+  </form>
+</div>
+
+<div id="appShell">
 <div class="topbar">
   <div class="topbar-inner">
     <div class="tb-brand">
@@ -227,6 +272,7 @@ tr.alto td{background:#FCEDEF}
       </div>
     </div>
     <div class="tb-kpis" id="kpis"></div>
+    <div class="tb-user" id="tbUser"></div>
   </div>
 </div>
 
@@ -307,7 +353,7 @@ tr.alto td{background:#FCEDEF}
   </div>
 
   <div class="panel" id="p-pgrupos">
-    <p class="note">Reconciliação <b>Proposta × Tasks</b>: o bloco de Personalização foi vendido agregado (<b>1.006h / R$ 221.320</b>), mas no Tasks SC vira dezenas de GAPs. Aqui, por grupo: <b>Est. Task</b> (soma ao vivo dos GAPs) × <b>Est. Proposta</b> (editável). Responde “quanto da proposta já virou GAP?”. <i>Esta aba sempre considera todos os tickets do cliente (ignora o seletor de escopo), porque a proposta se compara ao esforço total do Tasks.</i></p>
+    <p class="note">Reconciliação <b>Proposta × Tasks</b>: o bloco de Personalização foi vendido agregado (<b>1.006h / R$ 221.320</b>), mas no Tasks SC vira dezenas de GAPs. Aqui, por grupo: <b>Est. Task</b> (soma ao vivo dos GAPs) × <b>Est. Proposta</b> (editável). Responde “quanto da proposta já virou GAP?”. A <b>Est. Proposta</b> é gravada no Supabase (<code>svc_comercial.pgrupos</code>) e alimenta o bloco de personalizações do <b>Acerto de contas</b>. <i>Esta aba sempre considera todos os tickets do cliente (ignora o seletor de escopo), porque a proposta se compara ao esforço total do Tasks.</i></p>
     <div class="pg-kpis" id="pgKpis"></div>
     <div class="dec-controls">
       <button class="btn-ghost" id="pgReset">↺ Carregar do de-para</button>
@@ -412,11 +458,22 @@ tr.alto td{background:#FCEDEF}
   <button class="btn-ghost" onclick="location.reload()">Recarregar</button>
 </div></div>
 
+</div><!-- /appShell -->
+
 <script>
 // ===== Config Supabase (chave publishable — pública por design, protegida por RLS/policies) =====
 const SB_URL = 'https://kpimalwnswxalwbidkog.supabase.co';
 const SB_KEY = 'sb_publishable_XVFQmyH8DmU9SJ09v4luZA__7Vxg0nD';
-const sb = window.supabase.createClient(SB_URL, SB_KEY, { db:{ schema:'svc_comercial' } });
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  db:{ schema:'svc_comercial' },
+  auth:{ persistSession:true, autoRefreshToken:true, storageKey:'svc-comercial-auth' }
+});
+
+// ===== Cliente deste painel (a curadoria RFP/proposta abaixo é da DIGITRO) =====
+// A v_gaps já vem recortada pelos clientes liberados ao usuário logado; este .eq
+// mantém o painel na DIGITRO mesmo para admins (que enxergam todos os clientes).
+const CUSTOMER = '000348D0';
+let ME = null;
 
 // ===== Curadoria estática: conflitos RFP × GAP + notas NotebookLM (por código de ticket) =====
 const CONFLITOS = [
@@ -627,7 +684,7 @@ async function onDecide(uuid,d){
   const sv=document.querySelector(`[data-sv="${uuid}"]`); if(sv)sv.textContent='salvando…';
   const prev=g.decisao; g.decisao=novo;       // otimista
   renderKpis();renderDec();
-  const {error}=await sb.rpc('set_decisao',{p_uuid:uuid,p_decisao:novo,p_by:'painel-web'});
+  const {error}=await sb.rpc('set_decisao',{p_uuid:uuid,p_decisao:novo});
   if(error){ g.decisao=prev; renderKpis();renderDec(); alert('Falha ao gravar decisão: '+error.message); }
   else { const s=document.querySelector(`[data-sv="${uuid}"]`); if(s){s.textContent='salvo ✓';setTimeout(()=>{s.textContent='';},1200);} }
   renderAcerto();   // a decisão muda o débito do acerto de contas
@@ -646,15 +703,30 @@ const PG_SEED = [
   {nome:'Envio do boleto com a NFe',prop:8,gaps:['00011561'],note:'Proposta: 8h — match direto com o GAP 00011561.'},
   {nome:'Implantação Receita Recorrente',prop:0,gaps:['00010913','00014087','00014088'],note:'Proposta: 0h (definição pendente).'},
 ];
-const PG_LS='pgrupos_digitro';
 let PG=null;
-function pgLoad(){ try{PG=JSON.parse(localStorage.getItem(PG_LS));}catch(e){PG=null;} if(!Array.isArray(PG)||!PG.length) PG=JSON.parse(JSON.stringify(PG_SEED)); }
-function pgSave(){ localStorage.setItem(PG_LS,JSON.stringify(PG)); }
+// Persistência no Supabase (svc_comercial.pgrupos). O PG_SEED acima é só fallback
+// caso a tabela ainda não esteja semeada — nunca substitui o que está gravado.
+async function pgLoad(){
+  const {data,error}=await sb.from('pgrupos').select('*').eq('customer',CUSTOMER).eq('ativo',true).order('ordem');
+  if(error||!data||!data.length){
+    if(error) console.warn('pgrupos: falha ao ler do Supabase, usando de-para local —',error.message);
+    PG=JSON.parse(JSON.stringify(PG_SEED));
+    return;
+  }
+  PG=data.map(r=>({nome:r.nome,prop:+r.prop||0,gaps:r.gaps||[],note:r.note||'',ordem:r.ordem}));
+}
+// grava um grupo; devolve true se persistiu
+async function pgSaveGrupo(g){
+  const {error}=await sb.rpc('set_pgrupo',{p_nome:g.nome,p_prop:+g.prop||0,p_gaps:g.gaps||[],
+    p_note:g.note||null,p_ordem:g.ordem??0,p_customer:CUSTOMER});
+  if(error){ alert('Falha ao gravar o grupo de personalização: '+error.message); return false; }
+  return true;
+}
 const gapOf = code => GAPS.find(g=>g.code===code);
 const estOf = code => { const g=gapOf(code); return g?(+g.est||0):0; };
 
 function renderPG(){
-  if(!PG) pgLoad();
+  if(!PG){ pgLoad().then(renderPG); return; }
   document.getElementById('bpg').textContent=PG.length;
   // um GAP em dois grupos infla o Σ Task — sinaliza
   const seen={},dup=new Set();
@@ -709,14 +781,22 @@ function renderPG(){
       <span class="pg-gh">${fmt(g.est)} h</span><span></span></div>`).join('')
       :'<div class="pg-empty">Nenhum — todo o esforço estimado está dentro dos grupos.</div>'}`;
 
-  document.querySelectorAll('.pg-input').forEach(inp=>inp.onchange=()=>{
-    PG[+inp.dataset.i].prop=+inp.value||0; pgSave(); renderPG();
+  document.querySelectorAll('.pg-input').forEach(inp=>inp.onchange=async()=>{
+    const g=PG[+inp.dataset.i], prev=g.prop, novo=+inp.value||0;
+    if(novo===prev) return;
+    g.prop=novo; renderPG();                       // otimista
+    if(!await pgSaveGrupo(g)){ g.prop=prev; renderPG(); return; }
+    // a Est. Proposta é o "contratado" do grupo no Acerto de contas → recarrega e re-renderiza
+    await loadAcerto();
+    renderAcerto();
   });
 }
-document.getElementById('pgReset').onclick=()=>{
-  if(confirm('Recarregar os grupos do de-para original (descarta suas edições de Est. Proposta)?')){
-    localStorage.removeItem(PG_LS); PG=null; renderPG();
-  }
+document.getElementById('pgReset').onclick=async()=>{
+  if(!confirm('Recarregar os grupos do de-para original (descarta as edições de Est. Proposta gravadas no Supabase)?'))return;
+  const {error}=await sb.rpc('reset_pgrupos',{p_customer:CUSTOMER});
+  if(error){ alert('Falha ao restaurar os grupos: '+error.message); return; }
+  await pgLoad(); await loadAcerto();
+  renderPG(); renderAcerto();
 };
 document.getElementById('pgExport').onclick=()=>{
   const out={cliente:'DIGITRO',customer:'000348D0',prop_total:PG_PROP_TOTAL,gerado_em:new Date().toISOString(),
@@ -738,15 +818,15 @@ const brl   = n => 'R$ '+(Math.round(n)).toLocaleString('pt-BR');
 
 async function loadAcerto(){
   const [c,a]=await Promise.all([
-    sb.from('cancelamentos').select('*'),
-    sb.from('acerto_gaps').select('*')
+    sb.from('cancelamentos').select('*').eq('customer',CUSTOMER),
+    sb.from('acerto_gaps').select('*').eq('customer',CUSTOMER)
   ]);
   CANC={}; (c.data||[]).forEach(r=>CANC[r.chave]=r);
   ACG={};  (a.data||[]).forEach(r=>ACG[r.uuid_ticket]=r);
 }
 async function saveCancel(tipo,modulo,item,hContr,hCanc,ativo){
   const {error}=await sb.rpc('set_cancelamento',{p_tipo:tipo,p_modulo:modulo,p_item:item||null,
-    p_horas_contratadas:hContr,p_horas_canceladas:hCanc,p_ativo:ativo,p_by:'painel-web'});
+    p_horas_contratadas:hContr,p_horas_canceladas:hCanc,p_ativo:ativo,p_customer:CUSTOMER});
   if(error){alert('Falha ao gravar cancelamento: '+error.message);return false;}
   const k=tipo+'|'+modulo+'|'+(item||'');
   if(ativo) CANC[k]={chave:k,tipo,modulo,item:item||null,horas_contratadas:hContr,horas_canceladas:hCanc};
@@ -754,7 +834,7 @@ async function saveCancel(tipo,modulo,item,hContr,hCanc,ativo){
   return true;
 }
 async function saveAcertoGap(uuid,incluido){
-  const {error}=await sb.rpc('set_acerto_gap',{p_uuid:uuid,p_incluido:incluido,p_by:'painel-web'});
+  const {error}=await sb.rpc('set_acerto_gap',{p_uuid:uuid,p_incluido:incluido});
   if(error){alert('Falha ao gravar seleção: '+error.message);return false;}
   if(incluido) ACG[uuid]={uuid_ticket:uuid}; else delete ACG[uuid];
   return true;
@@ -781,7 +861,7 @@ const gapsDebito = () => AC_AUTO ? gapsFiltrados() : scoped().filter(g=>ACG[g.uu
 const debitoHoras = () => gapsDebito().reduce((s,g)=>s+(+g.est||0),0);
 
 function renderAcerto(){
-  if(!PG) pgLoad();
+  if(!PG){ pgLoad().then(renderAcerto); return; }
   const cMod=creditoModulos(), cPers=creditoPers(), credito=cMod+cPers;
   const debito=debitoHoras(), saldo=credito-debito, r=rate();
   document.getElementById('bac').textContent=Object.keys(CANC).length;
@@ -842,9 +922,11 @@ function renderAcerto(){
       <div><input class="ac-inp" type="number" min="0" step="1" data-persh="${i}" value="${fmt(hc)}" ${on?'':'disabled'}></div>
       <div class="ac-num">${fmt((+g.prop||0)-hc)} h</div><div></div></div>`;
   });
-  ph+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL PERSONALIZAÇÃO</div>
-    <div class="ac-num">${fmt(PG_PROP_TOTAL)} h</div><div class="ac-num neg" style="text-align:right">${fmt(cPers)} h</div>
-    <div class="ac-num">${fmt(PG_PROP_TOTAL-cPers)} h</div><div></div></div>`;
+  // total = soma das Est. Proposta gravadas nos grupos (aba "Grupos de Personalização")
+  const totP=PG.reduce((s,g)=>s+(+g.prop||0),0);
+  ph+=`<div class="ac-row mod"><div></div><div class="ac-nome">TOTAL PERSONALIZAÇÃO${totP!==PG_PROP_TOTAL?' <span class="tag-mini">bloco vendido: '+fmt(PG_PROP_TOTAL)+' h</span>':''}</div>
+    <div class="ac-num">${fmt(totP)} h</div><div class="ac-num neg" style="text-align:right">${fmt(cPers)} h</div>
+    <div class="ac-num">${fmt(totP-cPers)} h</div><div></div></div>`;
   document.getElementById('acPers').innerHTML=ph;
 
   // 3) GAPs
@@ -991,14 +1073,73 @@ document.getElementById('btnExport').onclick=()=>{
 
 async function loadData(){
   const st=document.getElementById('connStatus'); st.className='status load'; st.textContent='carregando…';
-  const {data,error}=await sb.from('v_gaps').select('*');
+  const {data,error}=await sb.from('v_gaps').select('*').eq('customer',CUSTOMER);
   if(error){ st.className='status err'; st.textContent='erro'; document.getElementById('errMsg').textContent=error.message; document.getElementById('errOverlay').style.display='flex'; return; }
   GAPS=data||[];
-  await loadAcerto();
+  await Promise.all([pgLoad(), loadAcerto()]);
+  if(!GAPS.length){
+    st.className='status err'; st.textContent='sem acesso';
+    document.getElementById('errMsg').textContent =
+      'Seu usuário ('+(ME?.email||'?')+') não tem o cliente '+CUSTOMER+' (DIGITRO) liberado, ou não há dados para ele. Peça a liberação ao administrador do painel.';
+    document.getElementById('errOverlay').style.display='flex'; return;
+  }
   st.className='status ok'; st.textContent=GAPS.length+' GAPs ao vivo';
   renderKpis();renderGeralCharts();renderConflitos();renderNlm();renderDec();renderPG();renderAcerto();
 }
-loadData();
+
+// ===== Autenticação (Supabase Auth) =====
+const $login=document.getElementById('loginWrap'), $shell=document.getElementById('appShell');
+
+function renderUser(){
+  document.getElementById('tbUser').innerHTML =
+    '<span><b>'+(ME?.nome||ME?.email||'')+'</b>'+(ME?.is_admin?' <span class="badge">ADMIN</span>':'')+'</span>'+
+    '<button id="btnSair" type="button">Sair</button>';
+  document.getElementById('btnSair').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+}
+
+async function startApp(){
+  const {data,error}=await sb.rpc('me');
+  ME = error ? null : (Array.isArray(data)?data[0]:data);
+  if(!ME || !ME.email){
+    await sb.auth.signOut();
+    showLogin('Não consegui validar sua sessão. Entre novamente.');
+    return;
+  }
+  // Autenticado no Auth, mas sem nada liberado: fora de cockpit.usuarios_login,
+  // inativo, ou sem nenhum cliente em cockpit.usuario_clientes (modo estrito).
+  if(!ME.is_admin && !(ME.clientes||[]).length){
+    await sb.auth.signOut();
+    showLogin('Seu usuário não tem nenhum cliente liberado neste painel. Fale com o administrador.');
+    return;
+  }
+  $login.style.display='none'; $shell.style.display='block';
+  renderUser();
+  await loadData();
+}
+
+function showLogin(msg){
+  $shell.style.display='none'; $login.style.display='flex';
+  const e=document.getElementById('loginErr');
+  if(msg){ e.textContent=msg; e.style.display='block'; } else { e.style.display='none'; }
+  document.getElementById('loginEmail').focus();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async ev=>{
+  ev.preventDefault();
+  const btn=document.getElementById('loginBtn'); btn.disabled=true; btn.textContent='Entrando…';
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password=document.getElementById('loginPass').value;
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  btn.disabled=false; btn.textContent='Entrar';
+  if(error){ showLogin(/Invalid login/i.test(error.message)?'E-mail ou senha inválidos.':error.message); return; }
+  document.getElementById('loginPass').value='';
+  await startApp();
+});
+
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await startApp(); else showLogin();
+})();
 </script>
 </body>
 </html>

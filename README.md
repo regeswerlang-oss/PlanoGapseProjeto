@@ -43,5 +43,8 @@ Schema isolado `svc_comercial` — não altera o schema `cockpit`:
 
 - `svc_comercial.v_gaps` — view de leitura dos GAPs da DÍGITRO (de `cockpit.tickets`).
 - `svc_comercial.set_decisao(...)` — função `security definer` que grava em `cockpit.decisoes`, restrita ao cliente `000348D0`.
+- `svc_comercial.pgrupos` — grupos de personalização (de-para proposta × GAPs) com a **Est. Proposta** editável; `prop_seed` guarda o de-para original para o botão *Reset*.
+- `svc_comercial.set_pgrupo(...)` / `reset_pgrupos(...)` — gravam os grupos e **sincronizam** o `horas_contratadas` dos cancelamentos de personalização, para o *Acerto de contas* refletir a edição.
+- `svc_comercial.cancelamentos` / `acerto_gaps` + `set_cancelamento(...)` / `set_acerto_gap(...)` — o acerto de contas.
 
 Só a **chave publishable** (pública por design) vai no front. Nenhum segredo no repositório.
