@@ -159,7 +159,7 @@ tr.alto:hover td,tr:hover td{background:#FFF7E6}
 
 <div class="tabs" id="tabs">
   <button class="tab active" data-p="geral">Visão geral</button>
-  <button class="tab" data-p="conflitos">Conflitos RFP × GAP <span class="b" id="bconf">0</span></button>
+  <button class="tab" data-p="conflitos">RFP × GAP <span class="b" id="bconf">0</span></button>
   <button class="tab" data-p="nlm">NotebookLM</button>
   <button class="tab" data-p="declinados">Declinados <span class="b" id="bdecl">0</span></button>
   <button class="tab" data-p="decisao">Tomada de decisão <span class="b" id="bdec">0</span></button>
