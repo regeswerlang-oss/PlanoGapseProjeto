@@ -477,7 +477,7 @@ body.simulando .vc-bar{display:block}
     <span>👁 Simulando o acesso de</span>
     <span class="who" id="vcQuem">—</span>
     <span class="det" id="vcDet"></span>
-    <span class="det">· painel em <b>só leitura</b> enquanto durar a simulação</span>
+    <span class="det" id="vcEnsaio">· <b>ensaio</b>: o que você mexer aqui não é gravado</span>
     <button type="button" id="vcSair">Voltar a ser eu</button>
   </div>
 </div>
@@ -786,12 +786,32 @@ let ME = null;    // quem realmente está logado (nunca muda com a simulação)
 let IMP = null;   // usuário simulado pelo "Ver como" (null = eu mesmo)
 let VER_USERS = null;
 // Permissões EFETIVAS da tela: o simulado quando há simulação, senão eu.
-// Na simulação o painel é sempre só leitura — validar acesso não pode gravar nada.
+// O pode_editar é o DELE — simulando um Editor, os campos respondem de verdade.
+// O que não acontece é a gravação: ver `sb.rpc` logo abaixo (modo ensaio).
 function view(){
   if(!IMP) return ME;
-  return {...IMP, pode_editar:false, simulado:true};
+  return {...IMP, simulado:true};
 }
 const podePrever = () => !!ME && (ME.is_admin || ME.perfil==='comum');
+
+// ===== Modo ENSAIO =====
+// Durante a simulação a sessão continua sendo a MINHA: o set_decisao grava
+// decided_by = jwt_email() = eu, não o simulado. Gravar aqui sujaria a autoria
+// das decisões do cliente. Então toda RPC de escrita é interceptada e devolve
+// sucesso sem sair do navegador: a tela reage, o banco não muda. Ao sair da
+// simulação o loadData() relê o banco e o ensaio evapora.
+const RPC_ESCRITA = new Set(['set_decisao','set_pgrupo','reset_pgrupos',
+  'set_cancelamento','set_acerto_gap','rfp_importar']);
+let VC_ENSAIO = 0;   // quantas gravações foram engolidas nesta simulação
+const _rpcReal = sb.rpc.bind(sb);
+sb.rpc = function(fn, args, opts){
+  if(IMP && RPC_ESCRITA.has(fn)){
+    VC_ENSAIO++; vcMarcarEnsaio();
+    console.info('[ensaio] '+fn+' não foi gravado (simulando '+IMP.email+')', args);
+    return Promise.resolve({data:null, error:null, status:200, statusText:'OK (ensaio)'});
+  }
+  return _rpcReal(fn, args, opts);
+};
 const CLIENTES = {};                       // customer -> nome
 const nomeCliente = c => CLIENTES[c] || c;
 
@@ -1606,7 +1626,9 @@ const norm = t => String(t||'').trim().toLowerCase()
 const esc  = t => String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function abrirImportRfp(){
-  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'. A simulação é só leitura — saia dela para importar.'); return; }
+  // O ensaio cobre a edição item a item; importação em lote fica fora dele —
+  // gravaria dezenas de linhas assinadas como eu, e ensaiar isso não valida nada.
+  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'.\n\nA edição na tela é um ensaio e não grava. A importação em lote fica de fora: saia da simulação para importar de verdade.'); return; }
   if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
   IMP_WB=null; IMP_ROWS=[]; IMP_COLS=[];
   document.getElementById('impQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
@@ -1719,31 +1741,39 @@ function rfpModelo(){
 // conferência: o modal monta o diff contra o que já está em cockpit.decisoes e
 // só então chama svc_comercial.set_decisao item a item.
 //
-// Formato aceito (array na raiz, ou dentro de {itens|decisoes|gaps}):
-//   [{"code":"00010911","decisao":"aprovado","estimativa":40,"observacao":"..."}]
+// Dois formatos aceitos:
+//   (a) LISTA — array na raiz, ou dentro de {itens|decisoes|gaps|items|data}:
+//       [{"code":"00010911","decisao":"aprovado","estimativa":40,"observacao":"..."}]
+//   (b) MAPA  — objeto com o código na CHAVE, como o export do app da Olim
+//       ("schema":"olim-gaps-decisions"): {"decisions":{"F-CAP-001":{"decision":"approve",
+//       "note":"...","estimativa_horas":18,"title":"..."}}}
 // Campos e valores são tolerantes a sinônimos — ver DIMP_CAMPO / DEC_ALIAS.
 
 const DIMP_CAMPO = {
   code:      ['code','codigo','código','id','gap','ticket','task','numero','número','id_ticket'],
   uuid:      ['uuid','uuid_ticket','uuidticket'],
-  decisao:   ['decisao','decisão','decision','status','resultado','deliberacao','deliberação'],
-  estimativa:['estimativa','horas','h','est','horas_estimadas','esforco','esforço','time_estimate'],
-  observacao:['observacao','observação','obs','justificativa','nota','comentario','comentário','motivo'],
+  decisao:   ['decisao','decisão','decision','decision_label','status','resultado','deliberacao','deliberação'],
+  estimativa:['estimativa','estimativa_horas','horas','h','est','horas_estimadas','esforco','esforço','time_estimate'],
+  observacao:['observacao','observação','obs','note','notes','justificativa','nota','comentario','comentário','motivo'],
+  titulo:    ['titulo','título','title','descricao','descrição','funcionalidade','item'],
 };
-// Tudo que o cliente possa escrever → enum cockpit.decisao_tipo
+// Tudo que o cliente possa escrever → enum cockpit.decisao_tipo.
+// Inclui os códigos em inglês do app da Olim (approve/phase2/refuse/pending).
 const DEC_ALIAS = {
   aprovar:      ['aprovar','aprovado','aprovada','aprova','ok','sim','aceito','aceita','approve','approved','manter'],
-  segunda_fase: ['segunda_fase','segunda fase','2 fase','2a fase','2ª fase','2fase','fase 2','fase2','2f','postergar','adiar','proxima fase','próxima fase','phase 2'],
+  segunda_fase: ['segunda_fase','segunda fase','2 fase','2a fase','2ª fase','2fase','fase 2','fase2','2f','postergar','adiar','proxima fase','próxima fase','phase2','phase 2','second phase'],
   contorno:     ['contorno','contornar','workaround','paliativo','solucao de contorno','solução de contorno'],
-  recusar:      ['recusar','recusado','recusada','recusa','nao','não','declinado','declinar','rejeitado','rejeitar','reject','rejected','negado','fora','remover do escopo'],
-  pendente:     ['pendente','','-','—','sem decisao','sem decisão','indefinido','em aberto','aberto','null','none','n/a','na'],
+  recusar:      ['recusar','recusado','recusada','recusa','nao','não','declinado','declinar','rejeitado','rejeitar','reject','rejected','refuse','refused','negado','fora','remover do escopo'],
+  pendente:     ['pendente','','-','—','sem decisao','sem decisão','indefinido','em aberto','aberto','null','none','n/a','na','pending'],
 };
 const DEC_DE_ALIAS = (()=>{ const m={}; for(const[k,vs]of Object.entries(DEC_ALIAS)) vs.forEach(v=>m[norm(v)]=k); return m; })();
 
 let DIMP=[];   // linhas já diferenciadas contra o estado atual
 
 function abrirImportDec(){
-  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'. A simulação é só leitura — saia dela para importar.'); return; }
+  // O ensaio cobre a edição item a item; importação em lote fica fora dele —
+  // gravaria dezenas de linhas assinadas como eu, e ensaiar isso não valida nada.
+  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'.\n\nA edição na tela é um ensaio e não grava. A importação em lote fica de fora: saia da simulação para importar de verdade.'); return; }
   if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
   DIMP=[];
   document.getElementById('dimpQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
@@ -1767,15 +1797,37 @@ const dimpNum = v => { if(v==null||v==='')return null; const n=parseFloat(String
 // então '' sobrescreveria a observação já gravada).
 const dimpTxt = v => { const s=(v==null?'':String(v)).trim(); return s?s:null; };
 
+// Achata o arquivo numa lista de itens, aceitando lista OU mapa código→objeto.
+// Devolve {itens, formato} — formato só para a mensagem de erro ficar útil.
+function dimpAchatar(raw){
+  if(Array.isArray(raw)) return {itens:raw, formato:'lista'};
+  if(!raw || typeof raw!=='object') return {itens:null};
+  // (a) lista embrulhada
+  for(const k of ['itens','decisoes','gaps','items','data'])
+    if(Array.isArray(raw[k])) return {itens:raw[k], formato:'lista em "'+k+'"'};
+  // (b) mapa código→objeto. "decisions" ganha de "decisions_raw": traz título e horas.
+  for(const k of ['decisions','decisoes','decisions_raw','gaps','itens'])
+    if(raw[k] && typeof raw[k]==='object' && !Array.isArray(raw[k]))
+      return {itens:Object.entries(raw[k]).map(([code,v])=>({code, ...(v&&typeof v==='object'?v:{decisao:v})})),
+              formato:'mapa em "'+k+'"'};
+  // (c) a própria raiz é o mapa código→objeto
+  const vals=Object.values(raw);
+  if(vals.length && vals.every(v=>v&&typeof v==='object'&&!Array.isArray(v)))
+    return {itens:Object.entries(raw).map(([code,v])=>({code,...v})), formato:'mapa na raiz'};
+  return {itens:null};
+}
+
 document.getElementById('dimpFile').onchange = async ev => {
   const f=ev.target.files && ev.target.files[0]; if(!f) return;
   let raw;
   try{ raw=JSON.parse(await f.text()); }
   catch(e){ dimpMsg('Não consegui ler o JSON: '+e.message,'err'); document.getElementById('dimpCfg').style.display='none'; document.getElementById('dimpSalvar').disabled=true; return; }
-  const arr = Array.isArray(raw) ? raw
-            : (raw && (raw.itens||raw.decisoes||raw.gaps||raw.items||raw.data));
-  if(!Array.isArray(arr)){ dimpMsg('O JSON precisa ser uma lista de itens (ou um objeto com a lista em "itens"/"decisoes").','err'); return; }
-  dimpDiff(arr);
+  const {itens}=dimpAchatar(raw);
+  if(!itens || !itens.length){
+    dimpMsg('Não achei os itens no arquivo. Esperado uma lista (raiz ou em "itens"/"decisoes") ou um mapa código→decisão (como o "decisions" do export da Olim).','err');
+    document.getElementById('dimpCfg').style.display='none'; document.getElementById('dimpSalvar').disabled=true; return;
+  }
+  dimpDiff(itens);
   document.getElementById('dimpCfg').style.display='block';
   dimpPreview();
 };
@@ -1791,7 +1843,9 @@ function dimpDiff(arr){
     const uuid=String(dimpGet(o,DIMP_CAMPO.uuid)??'').trim();
     const g = uuid ? BYU[uuid] : (code ? (BY[code] || BY[code.padStart(8,'0')]) : null);
     const rawDec=dimpGet(o,DIMP_CAMPO.decisao);
-    const base={linha,code:code||uuid||'—',titulo:g?.titulo||'',novaObs:dimpTxt(dimpGet(o,DIMP_CAMPO.observacao)),novaEst:dimpNum(dimpGet(o,DIMP_CAMPO.estimativa))};
+    // título do arquivo entra como fallback: nas linhas com erro é o que identifica o item
+    const base={linha,code:code||uuid||'—',titulo:g?.titulo||dimpTxt(dimpGet(o,DIMP_CAMPO.titulo))||'',
+                novaObs:dimpTxt(dimpGet(o,DIMP_CAMPO.observacao)),novaEst:dimpNum(dimpGet(o,DIMP_CAMPO.estimativa))};
 
     if(!g)                 return {...base,acao:'erro',motivo:(code||uuid)?'não existe no painel deste cliente':'sem código de GAP'};
     if(vistos.has(g.uuid_ticket)) return {...base,acao:'erro',motivo:'código repetido no arquivo'};
@@ -2074,17 +2128,27 @@ async function carregarVerComo(){
   sel.onchange=()=>verComo(sel.value===''?null:VER_USERS[+sel.value]);
 }
 
+// contador do ensaio na faixa — mostra que a tela reagiu mas o banco não mudou
+function vcMarcarEnsaio(){
+  const e=document.getElementById('vcEnsaio');
+  if(!e) return;
+  e.innerHTML = VC_ENSAIO
+    ? '· <b>ensaio</b>: '+VC_ENSAIO+' alteração(ões) só na tela — nada foi gravado'
+    : '· <b>ensaio</b>: o que você mexer aqui não é gravado';
+}
+
 let VC_CLI_ANTES = null;   // cliente em foco antes de simular, para devolver ao sair
 async function verComo(u){
   if(u && !IMP)      VC_CLI_ANTES = CUSTOMER;                       // entrando: guarda o meu foco
   else if(!u && IMP){ CUSTOMER = VC_CLI_ANTES || CUSTOMER; VC_CLI_ANTES=null; }  // saindo: devolve
   IMP = u;
+  VC_ENSAIO = 0; vcMarcarEnsaio();   // cada simulação começa com o ensaio zerado
   if(u){
     const cl = u.is_admin ? 'todos os clientes' : ((u.clientes||[]).length+' cliente(s)');
     document.getElementById('vcQuem').textContent = (u.nome||u.email)+' · '+u.email;
     document.getElementById('vcDet').textContent =
       '· '+(PERFIL_ROT[u.perfil]||u.perfil)+' · '+cl+' · '+(u.abas||[]).length+' aba(s)'
-      + (u.pode_editar?'':' · perfil só leitura');
+      + (u.pode_editar?' · pode editar':' · só leitura');
   }
   document.getElementById('tbVerComo').value = u ? String(VER_USERS.indexOf(u)) : '';
   renderUser();
