@@ -2074,7 +2074,10 @@ async function carregarVerComo(){
   sel.onchange=()=>verComo(sel.value===''?null:VER_USERS[+sel.value]);
 }
 
+let VC_CLI_ANTES = null;   // cliente em foco antes de simular, para devolver ao sair
 async function verComo(u){
+  if(u && !IMP)      VC_CLI_ANTES = CUSTOMER;                       // entrando: guarda o meu foco
+  else if(!u && IMP){ CUSTOMER = VC_CLI_ANTES || CUSTOMER; VC_CLI_ANTES=null; }  // saindo: devolve
   IMP = u;
   if(u){
     const cl = u.is_admin ? 'todos os clientes' : ((u.clientes||[]).length+' cliente(s)');
