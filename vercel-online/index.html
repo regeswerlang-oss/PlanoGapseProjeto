@@ -86,6 +86,14 @@ tr.alto td{background:#FCEDEF}
 .dec-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .dec-controls select,.dec-controls input{padding:9px 12px;border:1px solid #DCE3E8;border-radius:9px;font-family:var(--font);font-size:12.5px;background:#fff;color:var(--navy)}
 .dec-controls input{flex:1;min-width:200px}
+.cls-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-6px 0 14px}
+.cls-bar .lbl{font-size:11.5px;font-weight:700;color:var(--navy);opacity:.7;text-transform:uppercase;letter-spacing:.4px}
+.cls-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid #DCE3E8;border-radius:20px;
+  background:#fff;color:#7A8894;font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:.12s}
+.cls-chip:hover{border-color:#6F5BFF}
+.cls-chip.on{background:#6F5BFF;border-color:#6F5BFF;color:#fff}
+.cls-chip .n{font-size:10.5px;opacity:.75;font-weight:700}
+.cls-bar .mini{border:none;background:none;color:#6F5BFF;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px 6px}
 .btn-ghost{padding:9px 13px;background:#fff;border:1px solid #DCE3E8;border-radius:9px;font-size:12px;font-weight:600;color:var(--gray)}
 .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
 .task{background:#fff;border:1px solid #EDF1F4;border-radius:10px;padding:13px 15px;border-left:4px solid #DCE3E8;margin-bottom:9px;transition:all .15s}
@@ -403,11 +411,13 @@ tr.alto td{background:#FCEDEF}
         <select id="acGapGroup">
           <option value="produto">Agrupar: Produto</option>
           <option value="etapa_gap">Agrupar: Etapa GAP</option>
+          <option value="classificacao_gap">Agrupar: Classificação GAP</option>
           <option value="decisao">Agrupar: Decisão</option>
         </select>
         <button class="btn-ghost" id="acSelAll">Marcar todos os visíveis</button>
         <button class="btn-ghost" id="acSelNone">Desmarcar todos</button>
       </div>
+      <div class="cls-bar" id="acClsBar"></div>
       <div id="acGaps"></div>
     </div>
 
@@ -847,10 +857,47 @@ const canceladoModulo = m => CANC[kMod(m.modulo)]
 const creditoModulos = () => CATALOGO.reduce((s,m)=>s+canceladoModulo(m),0);
 const creditoPers    = () => (PG||[]).reduce((s,g)=>s+(CANC[kPers(g.nome)]?+CANC[kPers(g.nome)].horas_canceladas||0:0),0);
 
+// --- classificação GAP (tag 4:CLASSIFICACAO::*) ---
+const CLS_DEFS=[
+  ['INDEFINIDO','Indefinido'],['PRIORIDADE','Prioridade'],['NECESSARIO','Necessário'],
+  ['DESEJAVEL','Desejável'],['OPCIONAL','Opcional'],['—','Sem classificação'],
+];
+const clsKey = g => {
+  const v=(g.classificacao_gap||'').toString().trim().toUpperCase();
+  return v && CLS_DEFS.some(([k])=>k===v) ? v : (v || '—');
+};
+// padrão: todas marcadas
+let AC_CLS = new Set(CLS_DEFS.map(([k])=>k));
+
+function renderClsBar(){
+  const cont={}; scoped().forEach(g=>{const k=clsKey(g); cont[k]=(cont[k]||0)+1;});
+  // classificações fora do de-para (se existirem) entram como chips extras
+  Object.keys(cont).forEach(k=>{ if(!CLS_DEFS.some(([d])=>d===k)){ CLS_DEFS.push([k,k]); AC_CLS.add(k); } });
+  const chips=CLS_DEFS.filter(([k])=>cont[k]).map(([k,rot])=>
+    `<button class="cls-chip ${AC_CLS.has(k)?'on':''}" data-cls="${k}">${rot}<span class="n">${cont[k]}</span></button>`).join('');
+  document.getElementById('acClsBar').innerHTML=
+    `<span class="lbl">Classificação GAP</span>${chips}
+     <button class="mini" data-clsall="1">todas</button>
+     <button class="mini" data-clsnone="1">nenhuma</button>`;
+  document.querySelectorAll('[data-cls]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.cls; AC_CLS.has(k)?AC_CLS.delete(k):AC_CLS.add(k); renderAcerto();
+  });
+  document.querySelector('[data-clsall]').onclick=()=>{AC_CLS=new Set(CLS_DEFS.map(([k])=>k));renderAcerto();};
+  document.querySelector('[data-clsnone]').onclick=()=>{AC_CLS=new Set();renderAcerto();};
+}
+
+const CLS_ROT = k => (CLS_DEFS.find(([d])=>d===k)||[k,k])[1];
+function acGrpKey(g,grpBy){
+  if(grpBy==='decisao') return g.decisao?DEC[g.decisao]:'Pendente';
+  if(grpBy==='classificacao_gap') return CLS_ROT(clsKey(g));
+  return g[grpBy]||'—';
+}
+
 // --- débito (GAPs) ---
 function gapsFiltrados(){
   const f=document.getElementById('acGapFilter').value;
   return scoped().filter(g=>{
+    if(!AC_CLS.has(clsKey(g))) return false;   // filtro por Classificação GAP
     if(f==='aprovado')    return g.decisao==='aprovar';
     if(f==='compromisso') return ['aprovar','segunda_fase','contorno'].includes(g.decisao);
     if(f==='decidido')    return !!g.decisao && g.decisao!=='recusar';
@@ -930,10 +977,11 @@ function renderAcerto(){
   document.getElementById('acPers').innerHTML=ph;
 
   // 3) GAPs
+  renderClsBar();
   const grpBy=document.getElementById('acGapGroup').value;
   const lista=gapsFiltrados();
   const groups={};
-  lista.forEach(g=>{const k=(grpBy==='decisao'?(g.decisao?DEC[g.decisao]:'Pendente'):(g[grpBy]||'—'));(groups[k]=groups[k]||[]).push(g);});
+  lista.forEach(g=>{(groups[acGrpKey(g,grpBy)]=groups[acGrpKey(g,grpBy)]||[]).push(g);});
   let gh=`<div class="note" style="margin:0 0 8px">
     <label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:var(--navy)">
       <input type="checkbox" class="ac-chk g" id="acAuto" ${AC_AUTO?'checked':''}>
@@ -1003,7 +1051,7 @@ function bindAcerto(){
   });
   document.querySelectorAll('[data-grp]').forEach(c=>c.onchange=async()=>{
     const k=decodeURIComponent(c.dataset.grp), grpBy=document.getElementById('acGapGroup').value;
-    const arr=gapsFiltrados().filter(g=>(grpBy==='decisao'?(g.decisao?DEC[g.decisao]:'Pendente'):(g[grpBy]||'—'))===k);
+    const arr=gapsFiltrados().filter(g=>acGrpKey(g,grpBy)===k);
     for(const g of arr) await saveAcertoGap(g.uuid_ticket,c.checked);
     renderAcerto();
   });
