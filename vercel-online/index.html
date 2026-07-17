@@ -373,6 +373,24 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
 .tb-cli select:hover{border-color:#fff}
 .tb-cli select option{background:var(--navy);color:#fff}
 .tb-cli .lbl{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray-light);font-weight:700}
+/* ===== "Ver como" (simulação de acesso — admin e gestores) ===== */
+.tb-ver{display:none;align-items:center;gap:6px;margin-top:5px}
+.tb-ver.on{display:flex}
+.tb-ver select{max-width:300px;padding:4px 8px;border:1px solid rgba(255,255,255,.28);border-radius:7px;
+  background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:12px}
+.tb-ver select:hover{border-color:#fff}
+.tb-ver select option{background:var(--navy);color:#fff}
+.tb-ver .lbl{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray-light);font-weight:700}
+body.simulando .tb-ver select{border-color:#FFC368;background:rgba(255,195,104,.16);color:#FFC368;font-weight:700}
+.vc-bar{display:none;background:linear-gradient(90deg,rgba(255,195,104,.20),rgba(255,195,104,.06));
+  border-bottom:1px solid rgba(255,195,104,.45);color:#7A4B00;font-size:12.5px;font-weight:600}
+body.simulando .vc-bar{display:block}
+.vc-bar .in{max-width:1600px;margin:0 auto;padding:8px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vc-bar .who{background:#FFC368;color:#3A2200;border-radius:6px;padding:1px 7px;font-weight:800}
+.vc-bar .det{color:#8A6A2E;font-weight:500}
+.vc-bar button{margin-left:auto;background:#fff;border:1px solid #E0B463;color:#7A4B00;
+  border-radius:7px;padding:4px 12px;font-size:12px;font-weight:700}
+.vc-bar button:hover{background:#FFF6E6}
 .tb-user b{color:#fff;font-weight:700}
 .tb-user .badge{background:rgba(255,255,255,.16);color:#fff;border-radius:5px;padding:1px 6px;
   font-size:9.5px;font-weight:800;letter-spacing:.3px}
@@ -444,10 +462,23 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
         <div class="tb-cli"><span class="lbl">Cliente</span>
           <select id="tbCliente" title="Só aparecem os clientes liberados para o seu usuário"></select>
         </div>
+        <div class="tb-ver" id="tbVerWrap"><span class="lbl">Ver como</span>
+          <select id="tbVerComo" title="Simula o painel com os acessos de outro usuário — só leitura"></select>
+        </div>
       </div>
     </div>
     <div class="tb-kpis" id="kpis"></div>
     <div class="tb-user" id="tbUser"></div>
+  </div>
+</div>
+
+<div class="vc-bar" id="vcBar">
+  <div class="in">
+    <span>👁 Simulando o acesso de</span>
+    <span class="who" id="vcQuem">—</span>
+    <span class="det" id="vcDet"></span>
+    <span class="det">· painel em <b>só leitura</b> enquanto durar a simulação</span>
+    <button type="button" id="vcSair">Voltar a ser eu</button>
   </div>
 </div>
 
@@ -751,7 +782,16 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, {
 // do topo escolhe qual deles o painel mostra. A DIGITRO é só o padrão inicial.
 const CUSTOMER_PADRAO = '000348D0';
 let CUSTOMER = localStorage.getItem('svc-customer') || CUSTOMER_PADRAO;
-let ME = null;
+let ME = null;    // quem realmente está logado (nunca muda com a simulação)
+let IMP = null;   // usuário simulado pelo "Ver como" (null = eu mesmo)
+let VER_USERS = null;
+// Permissões EFETIVAS da tela: o simulado quando há simulação, senão eu.
+// Na simulação o painel é sempre só leitura — validar acesso não pode gravar nada.
+function view(){
+  if(!IMP) return ME;
+  return {...IMP, pode_editar:false, simulado:true};
+}
+const podePrever = () => !!ME && (ME.is_admin || ME.perfil==='comum');
 const CLIENTES = {};                       // customer -> nome
 const nomeCliente = c => CLIENTES[c] || c;
 
@@ -1529,6 +1569,8 @@ document.getElementById('scopeSel').onchange=e=>{
 ['decGroup','decFilter'].forEach(id=>document.getElementById(id).onchange=renderDec);
 document.getElementById('decSearch').oninput=renderDec;
 document.getElementById('btnReload').onclick=loadData;
+document.getElementById('btnImportDec').onclick=abrirImportDec;
+document.getElementById('dimpSoNovos').onchange=dimpPreview;
 document.getElementById('btnExport').onclick=()=>{
   const rows=[['code','titulo','produto','etapa_gap','status','horas','balde','decisao']];
   scoped().forEach(g=>rows.push([g.code,'"'+(g.titulo||'').replace(/"/g,'""')+'"',g.produto,g.etapa_gap,g.status_tasks,g.est,effBucket(g),g.decisao||'']));
@@ -1564,6 +1606,7 @@ const norm = t => String(t||'').trim().toLowerCase()
 const esc  = t => String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function abrirImportRfp(){
+  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'. A simulação é só leitura — saia dela para importar.'); return; }
   if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
   IMP_WB=null; IMP_ROWS=[]; IMP_COLS=[];
   document.getElementById('impQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
@@ -1700,6 +1743,7 @@ const DEC_DE_ALIAS = (()=>{ const m={}; for(const[k,vs]of Object.entries(DEC_ALI
 let DIMP=[];   // linhas já diferenciadas contra o estado atual
 
 function abrirImportDec(){
+  if(IMP){ alert('Você está simulando o acesso de '+(IMP.nome||IMP.email)+'. A simulação é só leitura — saia dela para importar.'); return; }
   if(ME && ME.pode_editar===false){ alert('Seu perfil é somente leitura — peça a importação ao administrador do painel.'); return; }
   DIMP=[];
   document.getElementById('dimpQuem').textContent='Cliente em foco: '+nomeCliente(CUSTOMER)+' · '+CUSTOMER;
@@ -1719,6 +1763,9 @@ function dimpGet(o,chaves){
   return undefined;
 }
 const dimpNum = v => { if(v==null||v==='')return null; const n=parseFloat(String(v).replace(',','.').replace(/[^\d.-]/g,'')); return isFinite(n)?n:null; };
+// texto vazio = "não informado", nunca "apague o que está lá" (a RPC usa coalesce,
+// então '' sobrescreveria a observação já gravada).
+const dimpTxt = v => { const s=(v==null?'':String(v)).trim(); return s?s:null; };
 
 document.getElementById('dimpFile').onchange = async ev => {
   const f=ev.target.files && ev.target.files[0]; if(!f) return;
@@ -1744,7 +1791,7 @@ function dimpDiff(arr){
     const uuid=String(dimpGet(o,DIMP_CAMPO.uuid)??'').trim();
     const g = uuid ? BYU[uuid] : (code ? (BY[code] || BY[code.padStart(8,'0')]) : null);
     const rawDec=dimpGet(o,DIMP_CAMPO.decisao);
-    const base={linha,code:code||uuid||'—',titulo:g?.titulo||'',novaObs:(dimpGet(o,DIMP_CAMPO.observacao)??null),novaEst:dimpNum(dimpGet(o,DIMP_CAMPO.estimativa))};
+    const base={linha,code:code||uuid||'—',titulo:g?.titulo||'',novaObs:dimpTxt(dimpGet(o,DIMP_CAMPO.observacao)),novaEst:dimpNum(dimpGet(o,DIMP_CAMPO.estimativa))};
 
     if(!g)                 return {...base,acao:'erro',motivo:(code||uuid)?'não existe no painel deste cliente':'sem código de GAP'};
     if(vistos.has(g.uuid_ticket)) return {...base,acao:'erro',motivo:'código repetido no arquivo'};
@@ -1822,7 +1869,7 @@ async function aplicarImportDec(){
     dimpMsg('Gravando… '+(ok+erros.length+1)+'/'+aplic.length);
     const {error}=await sb.rpc('set_decisao',{
       p_uuid:l.uuid, p_decisao:l.alvo,
-      p_estimativa:l.novaEst, p_obs:l.novaObs==null?null:String(l.novaObs)});
+      p_estimativa:l.novaEst, p_obs:l.novaObs});
     if(error){ erros.push(l.code+': '+error.message); } else { ok++; }
   }
   await loadData();   // relê do Supabase — a tela passa a mostrar o que de fato gravou
@@ -1864,7 +1911,9 @@ async function loadData(){
   if(!GAPS.length){
     st.className='status err'; st.textContent='sem acesso';
     document.getElementById('errMsg').textContent =
-      'Seu usuário ('+(ME?.email||'?')+') não tem o cliente '+CUSTOMER+' ('+nomeCliente(CUSTOMER)+') liberado, ou não há dados para ele. Peça a liberação ao administrador do painel.';
+      (IMP
+        ? 'O usuário simulado ('+IMP.email+') não tem o cliente '+CUSTOMER+' ('+nomeCliente(CUSTOMER)+') liberado, ou não há dados para ele.'
+        : 'Seu usuário ('+(ME?.email||'?')+') não tem o cliente '+CUSTOMER+' ('+nomeCliente(CUSTOMER)+') liberado, ou não há dados para ele. Peça a liberação ao administrador do painel.');
     document.getElementById('errOverlay').style.display='flex'; return;
   }
   st.className='status ok'; st.textContent=GAPS.length+' GAPs ao vivo';
@@ -1879,7 +1928,8 @@ const PERFIL_ROT = {admin:'Administrador',comum:'Editor',cliente:'Cliente',leito
 
 function renderUser(){
   const p=ME?.perfil||'leitor';
-  const badge = ME?.is_admin ? '<span class="badge">ADMIN</span>'
+  const badge = IMP ? '<span class="badge" title="Você está simulando o acesso de '+esc(IMP.email)+'">SIMULANDO</span>'
+              : ME?.is_admin ? '<span class="badge">ADMIN</span>'
               : (ME?.pode_editar ? '' : '<span class="badge" title="Seu perfil é somente leitura">SÓ LEITURA</span>');
   document.getElementById('tbUser').innerHTML =
     '<div class="um-wrap">'+
@@ -1891,9 +1941,10 @@ function renderUser(){
         '<div class="um-head"><b>'+(ME?.nome||'')+'</b><span>'+(ME?.email||'')+'</span>'+
           '<span class="um-perfil">'+(PERFIL_ROT[p]||p)+' · '+((ME?.clientes||[]).length||0)+' cliente(s)'+
           (ME?.is_admin?' · todos':'')+'</span></div>'+
-        (ME?.is_admin
+        (ME?.is_admin && !IMP
           ? '<button class="um-it" data-go="admin" type="button"><span>⚙︎</span> Acessos e restrições</button>'
           : '')+
+        (IMP ? '<button class="um-it" id="umSairImp" type="button"><span>👁</span> Parar de simular '+esc(IMP.nome||IMP.email)+'</button>' : '')+
         '<button class="um-it" data-go="conta" type="button"><span>🔑</span> Minha conta · trocar senha</button>'+
         '<div class="um-sep"></div>'+
         '<button class="um-it sair" id="btnSair" type="button"><span>⏻</span> Sair</button>'+
@@ -1914,6 +1965,8 @@ function renderUser(){
     if(b.dataset.go==='admin') irParaAba('admin');
     if(b.dataset.go==='conta') abrirConta();
   });
+  const $simOff=document.getElementById('umSairImp');
+  if($simOff) $simOff.onclick=()=>{ fechar(); verComo(null); };
   document.getElementById('btnSair').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
 }
 
@@ -1953,15 +2006,17 @@ async function salvarSenha(){
 
 // ===== Clientes: só os liberados; o combo do topo escolhe o foco =====
 async function carregarClientes(){
-  // nomes vêm do cockpit.clientes; a lista permitida vem do me()
-  const permitidos = ME?.clientes || [];
+  // nomes vêm do cockpit.clientes; a lista permitida vem do me() — ou do simulado
+  const V = view();
+  const permitidos = V?.clientes || [];
   const {data} = await sb.schema('cockpit').from('clientes').select('customer,nome');
   (data||[]).forEach(c=>{ CLIENTES[c.customer]=c.nome||c.customer; });
   permitidos.forEach(c=>{ if(!CLIENTES[c]) CLIENTES[c]=c; });
 
   if(!permitidos.includes(CUSTOMER)) CUSTOMER = permitidos.includes(CUSTOMER_PADRAO)
     ? CUSTOMER_PADRAO : (permitidos[0]||CUSTOMER_PADRAO);
-  localStorage.setItem('svc-customer',CUSTOMER);
+  // na simulação o foco é temporário: não sobrescreve a preferência do admin
+  if(!IMP) localStorage.setItem('svc-customer',CUSTOMER);
 
   const sel=document.getElementById('tbCliente');
   sel.innerHTML = permitidos.map(c=>
@@ -1969,7 +2024,7 @@ async function carregarClientes(){
     || `<option value="${CUSTOMER}">${nomeCliente(CUSTOMER)} · ${CUSTOMER}</option>`;
   sel.disabled = permitidos.length<2;
   sel.onchange = async()=>{
-    CUSTOMER = sel.value; localStorage.setItem('svc-customer',CUSTOMER);
+    CUSTOMER = sel.value; if(!IMP) localStorage.setItem('svc-customer',CUSTOMER);
     EXPANDED.clear(); EXPANDED_PG.clear(); AC_AUTO=true;
     document.getElementById('tbCliNome').textContent = nomeCliente(CUSTOMER);
     document.title = 'Serviço × Comercial — '+nomeCliente(CUSTOMER)+' · online';
@@ -1981,10 +2036,12 @@ async function carregarClientes(){
 
 // ===== Abas liberadas + perfil somente leitura =====
 function aplicarPermissoes(){
-  const abas = ME?.abas || [];
+  const V = view();
+  const abas = V?.abas || [];
   document.querySelectorAll('.tab').forEach(t=>{
     const p=t.dataset.p;
-    if(p==='admin'){ t.style.display = ME?.is_admin ? '' : 'none'; return; }
+    // a aba Acessos é minha, não do simulado: some enquanto estou simulando
+    if(p==='admin'){ t.style.display = (!IMP && ME?.is_admin) ? '' : 'none'; return; }
     t.style.display = abas.includes(p) ? '' : 'none';
   });
   // se a aba ativa não é mais permitida, cai na primeira visível
@@ -1993,8 +2050,47 @@ function aplicarPermissoes(){
     const primeira=[...document.querySelectorAll('.tab')].find(t=>t.style.display!=='none');
     if(primeira) primeira.click();
   }
-  document.body.classList.toggle('somente-leitura', !(ME?.pode_editar));
+  document.body.classList.toggle('somente-leitura', !(V?.pode_editar));
+  document.body.classList.toggle('simulando', !!IMP);
 }
+
+// ===== "Ver como": simular o acesso de outro usuário (admin e gestores) =====
+async function carregarVerComo(){
+  const wrap=document.getElementById('tbVerWrap');
+  if(!podePrever()){ wrap.classList.remove('on'); return; }
+  const {data,error}=await sb.rpc('preview_usuarios');
+  if(error){ wrap.classList.remove('on'); console.warn('Ver como indisponível:',error.message); return; }
+  // eu mesmo não entra na lista de simulação
+  VER_USERS=(data||[]).filter(u=>(u.email||'').toLowerCase()!==(ME.email||'').toLowerCase());
+  if(!VER_USERS.length){ wrap.classList.remove('on'); return; }
+  wrap.classList.add('on');
+  const sel=document.getElementById('tbVerComo');
+  sel.innerHTML='<option value="">— Eu mesmo ('+(ME.nome||ME.email)+') —</option>'
+    + VER_USERS.map((u,i)=>{
+        const p=PERFIL_ROT[u.perfil]||u.perfil;
+        const n=u.is_admin?'todos os clientes':((u.clientes||[]).length+' cliente(s)');
+        return `<option value="${i}">${esc(u.nome||u.email)} · ${p} · ${n}</option>`;
+      }).join('');
+  sel.onchange=()=>verComo(sel.value===''?null:VER_USERS[+sel.value]);
+}
+
+async function verComo(u){
+  IMP = u;
+  if(u){
+    const cl = u.is_admin ? 'todos os clientes' : ((u.clientes||[]).length+' cliente(s)');
+    document.getElementById('vcQuem').textContent = (u.nome||u.email)+' · '+u.email;
+    document.getElementById('vcDet').textContent =
+      '· '+(PERFIL_ROT[u.perfil]||u.perfil)+' · '+cl+' · '+(u.abas||[]).length+' aba(s)'
+      + (u.pode_editar?'':' · perfil só leitura');
+  }
+  document.getElementById('tbVerComo').value = u ? String(VER_USERS.indexOf(u)) : '';
+  renderUser();
+  await carregarClientes();
+  aplicarPermissoes();
+  await loadData();
+}
+
+document.getElementById('vcSair').onclick=()=>verComo(null);
 
 async function startApp(){
   const {data,error}=await sb.rpc('me');
@@ -2012,9 +2108,11 @@ async function startApp(){
     return;
   }
   $login.style.display='none'; $shell.style.display='block';
+  IMP=null;
   renderUser();
   // badge da aba Acessos: conta no boot, senão fica "0" até o primeiro clique
   if(ME.is_admin) admContar();
+  await carregarVerComo();
   await carregarClientes();
   aplicarPermissoes();
   await loadData();
