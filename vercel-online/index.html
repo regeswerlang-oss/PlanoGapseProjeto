@@ -221,7 +221,16 @@ tr.alto td{background:#FCEDEF}
 .ac-exp{background:none;border:none;color:var(--gray);font-size:13px;cursor:pointer;padding:0}
 .ac-gapgrp{margin-top:10px;border:1px solid #EDF1F4;border-radius:10px;overflow:hidden}
 .ac-gapgrp .gh{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 12px;background:#F8F9FC;font-weight:700;font-size:12.5px;color:var(--navy)}
-.ac-gap{display:grid;grid-template-columns:26px auto 1fr auto auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid #EDF1F4;font-size:12.5px}
+.ac-gap{display:grid;grid-template-columns:26px auto minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid #EDF1F4;font-size:12.5px}
+.ac-gap .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* tag de Classificação GAP */
+.cls-tag{font-size:9.5px;font-weight:800;letter-spacing:.3px;padding:2px 8px;border-radius:7px;white-space:nowrap;border:1px solid transparent}
+.cls-PRIORIDADE{background:#FDE8EC;color:#B0212E;border-color:#F6C9D1}
+.cls-NECESSARIO{background:#EFEBFF;color:#4A3BC7;border-color:#D8D0FF}
+.cls-DESEJAVEL{background:#E4F1FE;color:#12609E;border-color:#C6E1FA}
+.cls-OPCIONAL{background:#EDF1F4;color:#63737F;border-color:#DDE4EA}
+.cls-INDEFINIDO{background:#FFF4E0;color:#8A5A00;border-color:#F6E0B8}
+.cls-none{background:#F5F6F8;color:#9AA6B2;border-color:#E6EAEE;font-weight:700}
 .ac-gap.on{background:#F2FBF6}
 .ac-gap .h{font-weight:800;color:var(--navy);min-width:52px;text-align:right}
 .ac-chk.g{accent-color:var(--approve)}
@@ -897,6 +906,9 @@ function renderClsBar(){
 }
 
 const CLS_ROT = k => (CLS_DEFS.find(([d])=>d===k)||[k,k])[1];
+// tag visual da Classificação GAP na linha do GAP
+const clsTag = g => { const k=clsKey(g);
+  return `<span class="cls-tag ${k==='—'?'cls-none':'cls-'+k}" title="Classificação GAP (tag do Tasks SC)">${k==='—'?'sem classif.':CLS_ROT(k)}</span>`; };
 function acGrpKey(g,grpBy){
   if(grpBy==='decisao') return g.decisao?DEC[g.decisao]:'Pendente';
   if(grpBy==='classificacao_gap') return CLS_ROT(clsKey(g));
@@ -1007,8 +1019,9 @@ function renderAcerto(){
       ${arr.map(g=>{const on=AC_AUTO||!!ACG[g.uuid_ticket];
         return `<div class="ac-gap ${on?'on':''}">
           <input type="checkbox" class="ac-chk g" data-gap="${g.uuid_ticket}" ${on?'checked':''} ${AC_AUTO?'disabled':''}>
-          <span class="code">${g.code}</span><span>${g.titulo||''}</span>
-          <span class="pg-dec pg-${g.decisao||'pendente'}">${g.decisao?DEC[g.decisao]:'Pendente'}</span>
+          <span class="code">${g.code}</span><span class="tt" title="${(g.titulo||'').replace(/"/g,'&quot;')}">${g.titulo||''}</span>
+          ${clsTag(g)}
+          <span class="pg-dec pg-${g.decisao||'pendente'}" title="Decisão registrada na aba Tomada de decisão">${g.decisao?DEC[g.decisao]:'Pendente'}</span>
           <span class="h">${fmt(g.est)} h</span></div>`;}).join('')}
     </div>`;
   });
