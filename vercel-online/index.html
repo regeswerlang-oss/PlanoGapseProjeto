@@ -346,7 +346,42 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
 .tb-user b{color:#fff;font-weight:700}
 .tb-user .badge{background:rgba(255,255,255,.16);color:#fff;border-radius:5px;padding:1px 6px;
   font-size:9.5px;font-weight:800;letter-spacing:.3px}
-.tb-user button{background:none;border:1px solid rgba(255,255,255,.32);color:#C9D6E6;border-radius:7px;
+/* menu do chip do usuário */
+.um-wrap{position:relative}
+.um-chip{display:flex;align-items:center;gap:7px;background:none;border:1px solid rgba(255,255,255,.32);
+  color:#C9D6E6;border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.um-chip:hover{border-color:#fff;color:#fff}
+.um-chip b{color:#fff;font-weight:700}
+.um-car{font-size:9px;opacity:.75}
+.um-menu{display:none;position:absolute;top:calc(100% + 7px);right:0;z-index:900;min-width:262px;
+  background:#fff;border-radius:12px;box-shadow:0 18px 44px rgba(12,31,63,.3);overflow:hidden;padding:6px}
+.um-menu.open{display:block}
+.um-head{padding:11px 12px 10px;border-bottom:1px solid #EDF1F4;margin-bottom:6px;display:flex;flex-direction:column;gap:2px}
+.um-head b{color:var(--navy);font-size:13px}
+.um-head span{color:var(--gray);font-size:11px}
+.um-head .um-perfil{color:var(--roxo);font-weight:700;font-size:10.5px;margin-top:3px}
+.um-it{width:100%;display:flex;align-items:center;gap:9px;background:none;border:none;text-align:left;
+  padding:9px 12px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit}
+.um-it:hover{background:#F4F6FA}
+.um-it span{width:15px;text-align:center;opacity:.75}
+.um-it.sair{color:var(--refuse)}
+.um-sep{height:1px;background:#EDF1F4;margin:6px 0}
+/* modal Minha conta */
+.conta-card{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:378px;box-shadow:0 22px 56px rgba(0,0,0,.3)}
+.conta-card h3{margin:0 0 3px;color:var(--navy);font-size:17px}
+.conta-card .quem{color:var(--gray);font-size:12px;margin-bottom:16px}
+.conta-card label{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+  color:var(--gray);margin:11px 0 5px}
+.conta-card input{width:100%;padding:10px 12px;border:1px solid #DCE3E8;border-radius:9px;font-size:14px;
+  font-family:inherit;box-sizing:border-box}
+.conta-card input:focus{outline:none;border-color:var(--roxo);box-shadow:0 0 0 3px rgba(139,68,220,.13)}
+.conta-acts{display:flex;gap:9px;margin-top:19px}
+.conta-acts button{flex:1;padding:10px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+#contaSalvar{border:none;background:var(--navy);color:#fff}
+#contaSalvar:disabled{opacity:.6;cursor:default}
+.conta-msg{margin-top:12px;font-size:12px;font-weight:700;min-height:16px}
+.conta-msg.err{color:var(--refuse)} .conta-msg.ok{color:var(--approve)}
+.tb-user button.legacy{background:none;border:1px solid rgba(255,255,255,.32);color:#C9D6E6;border-radius:7px;
   padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 .tb-user button:hover{border-color:#fff;color:#fff}
 </style>
@@ -594,6 +629,20 @@ body.somente-leitura .ac-exp{pointer-events:auto;opacity:1}
   <p id="errMsg"></p>
   <p>Verifique a conexão e recarregue a página.</p>
   <button class="btn-ghost" onclick="location.reload()">Recarregar</button>
+</div></div>
+
+<div class="overlay" id="contaOverlay" style="display:none"><div class="conta-card">
+  <h3>Minha conta</h3>
+  <div class="quem" id="contaQuem"></div>
+  <label for="contaNova">Nova senha</label>
+  <input type="password" id="contaNova" autocomplete="new-password" placeholder="mínimo 8 caracteres">
+  <label for="contaConf">Repita a nova senha</label>
+  <input type="password" id="contaConf" autocomplete="new-password" placeholder="••••••••">
+  <div class="conta-msg" id="contaMsg"></div>
+  <div class="conta-acts">
+    <button class="btn-ghost" type="button" onclick="fecharConta()">Fechar</button>
+    <button id="contaSalvar" type="button" onclick="salvarSenha()">Trocar senha</button>
+  </div>
 </div></div>
 
 </div><!-- /appShell -->
@@ -1421,10 +1470,73 @@ function renderUser(){
   const badge = ME?.is_admin ? '<span class="badge">ADMIN</span>'
               : (ME?.pode_editar ? '' : '<span class="badge" title="Seu perfil é somente leitura">SÓ LEITURA</span>');
   document.getElementById('tbUser').innerHTML =
-    '<span><b>'+(ME?.nome||ME?.email||'')+'</b> '+badge+'</span>'+
-    '<button id="btnSair" type="button">Sair</button>';
+    '<div class="um-wrap">'+
+      '<button class="um-chip" id="umChip" type="button" aria-haspopup="true" aria-expanded="false" '+
+        'title="Perfil: '+(PERFIL_ROT[p]||p)+'">'+
+        '<b>'+(ME?.nome||ME?.email||'')+'</b> '+badge+'<span class="um-car">▾</span>'+
+      '</button>'+
+      '<div class="um-menu" id="umMenu">'+
+        '<div class="um-head"><b>'+(ME?.nome||'')+'</b><span>'+(ME?.email||'')+'</span>'+
+          '<span class="um-perfil">'+(PERFIL_ROT[p]||p)+' · '+((ME?.clientes||[]).length||0)+' cliente(s)'+
+          (ME?.is_admin?' · todos':'')+'</span></div>'+
+        (ME?.is_admin
+          ? '<button class="um-it" data-go="admin" type="button"><span>⚙︎</span> Acessos e restrições</button>'
+          : '')+
+        '<button class="um-it" data-go="conta" type="button"><span>🔑</span> Minha conta · trocar senha</button>'+
+        '<div class="um-sep"></div>'+
+        '<button class="um-it sair" id="btnSair" type="button"><span>⏻</span> Sair</button>'+
+      '</div>'+
+    '</div>';
+
+  const $chip=document.getElementById('umChip'), $menu=document.getElementById('umMenu');
+  const fechar=()=>{ $menu.classList.remove('open'); $chip.setAttribute('aria-expanded','false'); };
+  $chip.onclick=e=>{ e.stopPropagation();
+    const abrir=!$menu.classList.contains('open');
+    $menu.classList.toggle('open',abrir); $chip.setAttribute('aria-expanded',String(abrir)); };
+  document.addEventListener('click',fechar);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') fechar(); });
+  $menu.onclick=e=>e.stopPropagation();
+
+  $menu.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
+    fechar();
+    if(b.dataset.go==='admin') irParaAba('admin');
+    if(b.dataset.go==='conta') abrirConta();
+  });
   document.getElementById('btnSair').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
-  document.getElementById('tbUser').title = 'Perfil: '+(PERFIL_ROT[p]||p);
+}
+
+// leva o usuário para uma aba pelo nome (usado pelo menu do chip)
+function irParaAba(p){
+  const t=document.querySelector('.tab[data-p="'+p+'"]');
+  if(!t || t.style.display==='none'){ alert('Aba indisponível para o seu perfil.'); return; }
+  t.click(); t.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+}
+
+// ===== Minha conta: o próprio usuário troca a senha =====
+function abrirConta(){
+  document.getElementById('contaMsg').textContent='';
+  document.getElementById('contaMsg').className='conta-msg';
+  document.getElementById('contaNova').value='';
+  document.getElementById('contaConf').value='';
+  document.getElementById('contaQuem').textContent=(ME?.nome||'')+' · '+(ME?.email||'');
+  document.getElementById('contaOverlay').style.display='flex';
+  document.getElementById('contaNova').focus();
+}
+function fecharConta(){ document.getElementById('contaOverlay').style.display='none'; }
+
+async function salvarSenha(){
+  const nova=document.getElementById('contaNova').value;
+  const conf=document.getElementById('contaConf').value;
+  const $m=document.getElementById('contaMsg');
+  const erro=t=>{ $m.textContent=t; $m.className='conta-msg err'; };
+  if(nova.length<8) return erro('A senha precisa de pelo menos 8 caracteres.');
+  if(nova!==conf)   return erro('As duas senhas não são iguais.');
+  const b=document.getElementById('contaSalvar'); b.disabled=true; b.textContent='Salvando…';
+  const {error}=await sb.auth.updateUser({password:nova});
+  b.disabled=false; b.textContent='Trocar senha';
+  if(error) return erro('Não deu: '+error.message);
+  $m.textContent='Senha trocada. Ela já vale no próximo login.'; $m.className='conta-msg ok';
+  document.getElementById('contaNova').value=''; document.getElementById('contaConf').value='';
 }
 
 // ===== Clientes: só os liberados; o combo do topo escolhe o foco =====
@@ -1489,6 +1601,8 @@ async function startApp(){
   }
   $login.style.display='none'; $shell.style.display='block';
   renderUser();
+  // badge da aba Acessos: conta no boot, senão fica "0" até o primeiro clique
+  if(ME.is_admin) admContar();
   await carregarClientes();
   aplicarPermissoes();
   await loadData();
@@ -1500,6 +1614,14 @@ const ABAS_DEF = [['geral','Visão geral'],['tags','Decisões por tag'],['confli
   ['decisao','Tomada de decisão']];
 let ADM_USERS=null, ADM_CLIS=null;
 
+// só a contagem, para o badge nascer certo (não carrega a aba inteira)
+async function admContar(){
+  const {data,error}=await sb.rpc('admin_usuarios');
+  if(error) return;
+  ADM_USERS=data||[];
+  document.getElementById('badm').textContent=ADM_USERS.filter(u=>u.ativo).length;
+}
+
 async function admLoad(){
   const [u,c]=await Promise.all([sb.rpc('admin_usuarios'), sb.rpc('admin_clientes')]);
   if(u.error){ alert('Falha ao ler os usuários: '+u.error.message); return false; }
@@ -1510,7 +1632,8 @@ async function admLoad(){
 
 async function renderAdmin(){
   if(!ME?.is_admin) return;
-  if(!ADM_USERS){ if(!await admLoad()) return; }
+  // admContar() preenche só ADM_USERS — exigir os dois evita renderizar sem o catálogo de clientes
+  if(!ADM_USERS || !ADM_CLIS){ if(!await admLoad()) return; }
   document.getElementById('badm').textContent=ADM_USERS.filter(u=>u.ativo).length;
 
   document.getElementById('admList').innerHTML = ADM_USERS.map((u,i)=>{
@@ -1535,7 +1658,7 @@ async function renderAdmin(){
           <option value="1" ${u.ativo?'selected':''}>Ativo</option>
           <option value="0" ${u.ativo?'':'selected'}>Inativo</option>
         </select>
-        <button class="btn-ghost" data-senha="${u.email}" title="Envia por e-mail o link para a pessoa definir a senha">Enviar link de senha</button>
+        <button class="btn-ghost" data-senha="${u.email}" title="Gera uma senha provisória e mostra na tela para você repassar">Criar/resetar acesso</button>
         <button class="btn-ghost" data-salvar="${i}">Salvar acessos</button>
       </div>
       <div class="adm-body">
@@ -1580,12 +1703,27 @@ async function renderAdmin(){
 
   document.querySelectorAll('[data-senha]').forEach(b=>b.onclick=async()=>{
     const email=b.dataset.senha;
-    if(!confirm(`Enviar para ${email} o link de definição de senha?`)) return;
-    b.disabled=true;
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-    b.disabled=false;
-    alert(error?('Falha ao enviar: '+error.message):'Link enviado para '+email+'.');
+    if(!confirm(`Gerar uma senha provisória para ${email}?\n\nSe a pessoa já tiver acesso, a senha atual dela deixa de valer.`)) return;
+    b.disabled=true; b.textContent='Gerando…';
+    const r=await authAdmin('criar',email,'');
+    b.disabled=false; b.textContent='Criar/resetar acesso';
+    if(!r?.ok){ alert('Não deu: '+(r?.msg||'erro desconhecido')); return; }
+    prompt((r.criado?'Acesso criado':'Senha redefinida')+' para '+email+
+           '.\n\nPasse a senha provisória abaixo — a pessoa troca em Minha conta.', r.senha);
   });
+}
+
+// Cria/reseta o usuário no Supabase Auth via Edge Function (service_role fica lá,
+// nunca no front). Devolve a senha provisória para o admin repassar.
+async function authAdmin(acao,email,nome){
+  const {data,error}=await sb.functions.invoke('admin-users',{body:{acao,email,nome}});
+  if(error){
+    // erro HTTP: o corpo traz a mensagem real da função
+    let msg=error.message;
+    try{ const j=await error.context?.json(); if(j?.msg) msg=j.msg; }catch(_){}
+    return {ok:false,msg};
+  }
+  return data;
 }
 
 document.getElementById('admAdd').onclick=async()=>{
@@ -1593,11 +1731,25 @@ document.getElementById('admAdd').onclick=async()=>{
   const nome=document.getElementById('admNovoNome').value.trim();
   const perfil=document.getElementById('admNovoPerfil').value;
   if(!email||!email.includes('@')){ alert('Informe um e-mail válido.'); return; }
+  const b=document.getElementById('admAdd'); b.disabled=true; b.textContent='Criando…';
+
+  // 1) allowlist + perfil
   const {error}=await sb.rpc('admin_set_usuario',{p_email:email,p_nome:nome||email,p_ativo:true,p_perfil:perfil});
-  if(error){ alert('Não cadastrei: '+error.message); return; }
+  if(error){ b.disabled=false; b.textContent='Cadastrar'; alert('Não cadastrei: '+error.message); return; }
+  // 2) acesso de verdade no Supabase Auth
+  const r=await authAdmin('criar',email,nome);
+  b.disabled=false; b.textContent='Cadastrar';
+
   document.getElementById('admNovoEmail').value=''; document.getElementById('admNovoNome').value='';
   ADM_USERS=null; await renderAdmin();
-  alert('Cadastrado. Agora libere os clientes e as abas, e use "Enviar link de senha" para a pessoa criar o acesso.');
+
+  if(!r?.ok){
+    alert('Cadastrei na allowlist, MAS não criei o acesso: '+(r?.msg||'erro desconhecido')+
+          '\n\nA pessoa ainda não consegue entrar. Use "Criar/resetar acesso" no card dela.');
+    return;
+  }
+  prompt('Acesso criado para '+email+'.\n\nPasse a senha provisória abaixo (ela troca em Minha conta).\n'+
+         'Agora libere os clientes e as abas no card dela.', r.senha);
 };
 
 function showLogin(msg){
