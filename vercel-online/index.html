@@ -480,6 +480,7 @@ tr.alto td{background:#FCEDEF}
     <div class="dec-controls">
       <select id="decGroup">
         <option value="etapa_gap">Agrupar: Etapa GAP</option>
+        <option value="classificacao_gap">Agrupar: Classificação GAP</option>
         <option value="produto">Agrupar: Produto</option>
         <option value="bucket">Agrupar: Balde de horas</option>
         <option value="grau">Agrupar: Grau de conflito</option>
@@ -719,9 +720,11 @@ function renderDec(){
   if(!list.length){cont.innerHTML='<div class="empty">Nenhum item para os filtros atuais.</div>';return;}
   if(grp==='none'){cont.innerHTML=list.map(taskHTML).join('');}
   else{
-    const keyf={etapa_gap:g=>g.etapa_gap||'—',produto:g=>g.produto||'—',bucket:g=>({estimado:'Estimado',aprovado:'Aprovado',naoaprovado:'Não aprovado',saindo:'Saindo/Cancelado',sem_est:'Sem estimativa'})[effBucket(g)],grau:g=>CONF_BY_CODE[g.code]?('Conflito '+CONF_BY_CODE[g.code]):'Sem conflito RFP'}[grp];
+    const keyf={etapa_gap:g=>g.etapa_gap||'—',classificacao_gap:g=>CLS_ROT(clsKey(g)),produto:g=>g.produto||'—',bucket:g=>({estimado:'Estimado',aprovado:'Aprovado',naoaprovado:'Não aprovado',saindo:'Saindo/Cancelado',sem_est:'Sem estimativa'})[effBucket(g)],grau:g=>CONF_BY_CODE[g.code]?('Conflito '+CONF_BY_CODE[g.code]):'Sem conflito RFP'}[grp];
     const groups={};list.forEach(g=>{const k=keyf(g);(groups[k]=groups[k]||[]).push(g);});
-    cont.innerHTML=Object.keys(groups).sort().map(k=>{
+    const ORD=grp==='classificacao_gap'?CLS_DEFS.map(([,rot])=>rot):null;
+    const sorter=ORD?((a,b)=>{const ia=ORD.indexOf(a),ib=ORD.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);}):((a,b)=>a.localeCompare(b));
+    cont.innerHTML=Object.keys(groups).sort(sorter).map(k=>{
       const hrs=groups[k].reduce((s,g)=>s+(+g.est||0),0);
       return `<div class="card" style="padding:12px 15px"><h3 style="font-size:13px"><span class="num">${groups[k].length}</span> ${k} · ${fmt(hrs)} h</h3>${groups[k].map(taskHTML).join('')}</div>`;
     }).join('');
