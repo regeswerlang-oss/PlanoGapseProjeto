@@ -163,7 +163,14 @@ tr.alto td{background:#FCEDEF}
 .pg-input{width:82px;padding:6px 8px;border:1px solid #DCE3E8;border-radius:8px;font-family:var(--font);font-size:16px;font-weight:800;color:var(--navy);text-align:center;background:#FFFDF5}
 .pg-input:focus{outline:none;border-color:var(--roxo);box-shadow:0 0 0 3px rgba(111,91,255,.15)}
 .pg-gaps{padding:6px 18px 14px;background:#FAFCFD;border-top:1px solid #EDF1F4}
-.pg-gap{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:9px;align-items:center;padding:7px 0;border-bottom:1px dashed #EDF1F4;font-size:12.5px}
+.pg-gap{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto;gap:9px;align-items:center;padding:7px 0;border-bottom:1px dashed #EDF1F4;font-size:12.5px}
+.pg-gt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* combo de mover/remover o GAP de grupo */
+.pg-move{max-width:190px;padding:4px 7px;border:1px solid #DCE3E8;border-radius:7px;background:#fff;
+  font-family:var(--font);font-size:11px;color:var(--gray);cursor:pointer}
+.pg-move:hover{border-color:var(--roxo);color:var(--navy)}
+.pg-move:focus{outline:none;border-color:var(--roxo);box-shadow:0 0 0 3px rgba(111,91,255,.15)}
+.pg-move.busy{opacity:.5;pointer-events:none}
 .pg-gap:last-child{border-bottom:none}
 .pg-gt{color:var(--ink)}
 .pg-gh{font-weight:800;color:var(--navy);min-width:52px;text-align:right}
@@ -754,6 +761,32 @@ async function pgSaveGrupo(g){
 const gapOf = code => GAPS.find(g=>g.code===code);
 const estOf = code => { const g=gapOf(code); return g?(+g.est||0):0; };
 
+// combo por linha: mover o GAP para outro grupo ou tirá-lo do grupo.
+// from = índice do grupo atual em PG, ou -1 quando o GAP está fora de todos.
+function moveSelect(from,code){
+  const opts=PG.map((g,j)=>j===from?'':`<option value="${j}">${g.nome}</option>`).join('');
+  return `<select class="pg-move" data-from="${from}" data-code="${code}" title="Mover este GAP para outro grupo${from>=0?' ou removê-lo daqui':''}">
+    <option value="">${from>=0?'mover para…':'incluir em…'}</option>
+    ${opts}
+    ${from>=0?'<option value="__out">— remover do grupo</option>':''}
+  </select>`;
+}
+// aplica a movimentação e persiste os grupos afetados
+async function pgMove(from,to,code){
+  const src = from>=0 ? PG[from] : null;
+  const dst = to==='__out' ? null : PG[+to];
+  if(src && dst && src===dst) return;
+  const snap = JSON.stringify(PG);                       // rollback
+  if(src) src.gaps=(src.gaps||[]).filter(c=>c!==code);
+  if(dst && !(dst.gaps||[]).includes(code)) (dst.gaps=dst.gaps||[]).push(code);
+  renderPG();                                            // otimista
+  const alvos=[src,dst].filter(Boolean);
+  for(const g of alvos){
+    if(!await pgSaveGrupo(g)){ PG=JSON.parse(snap); renderPG(); return; }
+  }
+  await loadAcerto(); renderAcerto();
+}
+
 function renderPG(){
   if(!PG){ pgLoad().then(renderPG); return; }
   document.getElementById('bpg').textContent=PG.length;
@@ -771,10 +804,11 @@ function renderPG(){
       const g=gapOf(c);
       const d=(g&&g.decisao)?g.decisao:'pendente';
       const t=g?(g.titulo||''):'<i>não encontrado no Tasks SC</i>';
-      return `<div class="pg-gap"><span class="code">${c}</span><span class="pg-gt">${t}</span>
+      return `<div class="pg-gap"><span class="code">${c}</span><span class="pg-gt" title="${(g?(g.titulo||''):'').replace(/"/g,'&quot;')}">${t}</span>
         <span class="pg-dec pg-${d}">${d==='pendente'?'Pendente':DEC[d]}</span>
         <span class="pg-gh">${g?fmt(g.est):'—'} h</span>
-        ${dup.has(c)?'<span class="pg-warn">em 2 grupos</span>':'<span></span>'}</div>`;
+        ${dup.has(c)?'<span class="pg-warn">em 2 grupos</span>':'<span></span>'}
+        ${moveSelect(i,c)}</div>`;
     }).join('') : '<div class="pg-empty">Sem GAP correspondente no Tasks SC — a proposta prevê horas, mas não há Task aberta. Possível item a abrir.</div>';
     return `<div class="card pg-card">
       <div class="pg-head">
@@ -805,11 +839,19 @@ function renderPG(){
   document.getElementById('pgFora').innerHTML=`
     <h3><span class="num">!</span> GAPs estimados fora dos grupos de personalização · ${fora.length} itens · ${fmt(hFora)} h</h3>
     <div class="sub">Esforço estimado no Tasks SC que <b>não</b> está coberto pelo bloco de 1.006h da proposta — é aqui que mora o risco comercial.</div>
-    ${fora.length?fora.sort((a,b)=>b.est-a.est).map(g=>`<div class="pg-gap"><span class="code">${g.code}</span><span class="pg-gt">${g.titulo||''}</span>
+    ${fora.length?fora.sort((a,b)=>b.est-a.est).map(g=>`<div class="pg-gap"><span class="code">${g.code}</span><span class="pg-gt" title="${(g.titulo||'').replace(/"/g,'&quot;')}">${g.titulo||''}</span>
       <span class="pg-dec pg-${g.decisao||'pendente'}">${g.decisao?DEC[g.decisao]:'Pendente'}</span>
-      <span class="pg-gh">${fmt(g.est)} h</span><span></span></div>`).join('')
+      <span class="pg-gh">${fmt(g.est)} h</span><span></span>
+      ${moveSelect(-1,g.code)}</div>`).join('')
       :'<div class="pg-empty">Nenhum — todo o esforço estimado está dentro dos grupos.</div>'}`;
 
+  document.querySelectorAll('.pg-move').forEach(sel=>sel.onchange=async()=>{
+    const to=sel.value; if(!to) return;
+    const from=+sel.dataset.from, code=sel.dataset.code;
+    if(to==='__out' && !confirm(`Remover o GAP ${code} do grupo “${PG[from].nome}”?\n\nEle passa a contar em “GAPs estimados fora dos grupos”.`)){ sel.value=''; return; }
+    sel.classList.add('busy');
+    await pgMove(from,to,code);
+  });
   document.querySelectorAll('.pg-input').forEach(inp=>inp.onchange=async()=>{
     const g=PG[+inp.dataset.i], prev=g.prop, novo=+inp.value||0;
     if(novo===prev) return;
