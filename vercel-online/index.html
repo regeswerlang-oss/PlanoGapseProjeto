@@ -226,6 +226,18 @@ tr.alto td{background:#FCEDEF}
   color:var(--refuse);text-align:right;background:#FFF8F8}
 .ac-inp:disabled{background:#F4F4F8;color:var(--gray-light);border-color:#EDF1F4;font-weight:500}
 .ac-exp{background:none;border:none;color:var(--gray);font-size:13px;cursor:pointer;padding:0}
+/* detalhe do grupo de personalização (retraído por padrão) */
+.ac-row.pers{cursor:pointer}
+.ac-row.pers .ac-nome{display:flex;align-items:center;gap:8px}
+.ac-pgdet{background:#FAFCFD;border-bottom:1px solid #EDF1F4;padding:4px 10px 10px 34px}
+.ac-pgd-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:10px;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--gray);font-weight:800;padding:7px 0 5px}
+.ac-pgd-head .est{background:#EFEBFF;color:#4A3BC7;border-radius:6px;padding:2px 7px;letter-spacing:.2px}
+.ac-pgrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:9px;align-items:center;
+  padding:6px 0;border-top:1px dashed #E6EDF2;font-size:12px}
+.ac-pgrow .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.ac-pgrow .h{font-weight:800;color:var(--navy);min-width:48px;text-align:right}
+.ac-pgd-empty{font-size:11.5px;color:#8A5A00;background:#FFF7EC;border-radius:8px;padding:8px 10px;margin-top:4px}
 .ac-gapgrp{margin-top:10px;border:1px solid #EDF1F4;border-radius:10px;overflow:hidden}
 .ac-gapgrp .gh{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 12px;background:#F8F9FC;font-weight:700;font-size:12.5px;color:var(--navy)}
 .ac-gap{display:grid;grid-template-columns:26px auto minmax(0,1fr) auto auto auto auto;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid #EDF1F4;font-size:12.5px}
@@ -821,7 +833,6 @@ function renderPG(){
         <div class="pg-nums">
           <div class="pg-n"><div class="pg-nl">Est. Task</div><div class="pg-nv">${fmt(task)}<span>h</span></div></div>
           <div class="pg-n"><div class="pg-nl">Est. Proposta</div><input class="pg-input" type="number" min="0" step="1" value="${prop}" data-i="${i}"></div>
-          <div class="pg-n tot"><div class="pg-nl">Total (T+P)</div><div class="pg-nv">${fmt(task+prop)}<span>h</span></div></div>
           <div class="pg-n"><div class="pg-nl">Δ Task−Prop.</div><div class="pg-nv ${delta>0?'over':(delta<0?'under':'')}">${delta>0?'+':''}${fmt(delta)}<span>h</span></div></div>
         </div>
       </div>
@@ -973,6 +984,32 @@ function acGrpKey(g,grpBy){
   return g[grpBy]||'—';
 }
 
+// grupos de personalização expandidos no Acerto de contas (retraído por padrão)
+const EXPANDED_PG = new Set();
+// detalhe de um grupo: os GAPs que o compõem, no mesmo espírito da aba "Grupos de Personalização"
+function persDetalhe(grp,task){
+  const codes=grp.gaps||[], prop=+grp.prop||0, delta=task-prop;
+  if(!codes.length) return `<div class="ac-pgdet"><div class="ac-pgd-empty">
+    Sem GAP correspondente no Tasks SC — a proposta prevê ${fmt(prop)} h, mas não há Task aberta. Possível item a abrir.</div></div>`;
+  const linhas=codes.map(c=>{
+    const g=gapOf(c);
+    const d=(g&&g.decisao)?g.decisao:'pendente';
+    return `<div class="ac-pgrow">
+      <span class="code">${c}</span>
+      <span class="tt" title="${(g?(g.titulo||''):'').replace(/"/g,'&quot;')}">${g?(g.titulo||''):'<i>não encontrado no Tasks SC</i>'}</span>
+      ${g?clsTag(g):'<span></span>'}
+      <span class="pg-dec pg-${d}">${d==='pendente'?'Pendente':DEC[d]}</span>
+      <span class="h">${g?fmt(g.est):'—'} h</span></div>`;
+  }).join('');
+  return `<div class="ac-pgdet">
+    <div class="ac-pgd-head">
+      <span class="est">Est. Task ${fmt(task)} h</span>
+      <span>Est. Proposta ${fmt(prop)} h</span>
+      <span style="color:${delta>0?'var(--refuse)':'#127551'}">Δ ${delta>0?'+':''}${fmt(delta)} h</span>
+      <span style="font-weight:600;text-transform:none;letter-spacing:0">— o de-para vive na aba “Grupos de Personalização”</span>
+    </div>${linhas}</div>`;
+}
+
 // --- débito (GAPs) ---
 function gapsFiltrados(){
   const f=document.getElementById('acGapFilter').value;
@@ -1042,12 +1079,17 @@ function renderAcerto(){
   let ph=hdr.replace('Módulo / subitem','Grupo de personalização');
   PG.forEach((g,i)=>{
     const k=kPers(g.nome), on=!!CANC[k], hc=on?+CANC[k].horas_canceladas||0:0;
-    ph+=`<div class="ac-row ${on?'off':''}">
+    const codes=g.gaps||[], task=codes.reduce((s,c)=>s+estOf(c),0);
+    const open=EXPANDED_PG.has(g.nome);
+    ph+=`<div class="ac-row pers ${on?'off':''}">
       <input type="checkbox" class="ac-chk" data-pers="${i}" ${on?'checked':''}>
-      <div class="ac-nome">${g.nome}</div>
+      <div class="ac-nome">${g.nome}
+        <span class="tag-mini" title="GAPs do Tasks SC neste grupo (aba Grupos de Personalização)">${codes.length} GAP${codes.length===1?'':'s'} · ${fmt(task)} h</span></div>
       <div class="ac-num muted">${fmt(g.prop)} h</div>
       <div><input class="ac-inp" type="number" min="0" step="1" data-persh="${i}" value="${fmt(hc)}" ${on?'':'disabled'}></div>
-      <div class="ac-num">${fmt((+g.prop||0)-hc)} h</div><div></div></div>`;
+      <div class="ac-num">${fmt((+g.prop||0)-hc)} h</div>
+      <button class="ac-exp" data-exppg="${encodeURIComponent(g.nome)}" title="${open?'Retrair':'Ver os GAPs deste grupo'}">${open?'▾':'▸'}</button></div>`;
+    if(open) ph+=persDetalhe(g,task);
   });
   // total = soma das Est. Proposta gravadas nos grupos (aba "Grupos de Personalização")
   const totP=PG.reduce((s,g)=>s+(+g.prop||0),0);
@@ -1103,6 +1145,15 @@ function renderAcerto(){
 function bindAcerto(){
   document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{
     const m=b.dataset.exp; EXPANDED.has(m)?EXPANDED.delete(m):EXPANDED.add(m); renderAcerto();
+  });
+  const togglePG = n => { EXPANDED_PG.has(n)?EXPANDED_PG.delete(n):EXPANDED_PG.add(n); renderAcerto(); };
+  document.querySelectorAll('[data-exppg]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); togglePG(decodeURIComponent(b.dataset.exppg));
+  });
+  // clicar na linha do grupo também abre/fecha (menos no checkbox e no input de horas)
+  document.querySelectorAll('.ac-row.pers').forEach(r=>r.onclick=e=>{
+    if(e.target.closest('input,button')) return;
+    togglePG(decodeURIComponent(r.querySelector('[data-exppg]').dataset.exppg));
   });
   document.querySelectorAll('[data-mod]').forEach(c=>c.onchange=async()=>{
     const m=CATALOGO[+c.dataset.mod];
