@@ -21,9 +21,11 @@ git add -A
 git status --short
 
 if git diff --cached --quiet; then
-  echo "==> Nada novo para commitar."
+  echo "==> Nada novo para commitar (o commit ja existe) — apenas enviando."
 else
-  git commit -m "Renomeia aba Conflitos RFP x GAP para RFP x GAP"
+  # Mensagem: 1o argumento do script, ou uma padrao com a data.
+  MSG="${1:-Atualiza painel Servico x Comercial ($(date +%d/%m/%Y))}"
+  git commit -m "$MSG"
 fi
 
 echo "==> Enviando para o GitHub..."
